@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #ecfdf7;
+  --color-brand-100: #d1faec;
+  --color-brand-200: #a6f2da;
+  --color-brand-300: #6de4c3;
+  --color-brand-500: #14a383;
+  --color-brand-600: #0b8a6e;
+  --color-brand-700: #0a6f5a;
+  --color-brand-800: #0c5849;
+  --color-brand-900: #0c483d;
+  --color-ink: #10201c;
+  --color-muted: #52605c;
+  --color-surface: #f6f8f7;
+  --color-danger: #c62828;
+  --color-warn: #b45309;
+  --color-ok: #15803d;
+  --color-series: #2a78d6;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Burbujas del chat: respetan saltos de línea del bot. */
+.bubble {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand-300);
+  outline-offset: 2px;
+}
