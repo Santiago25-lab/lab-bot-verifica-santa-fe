@@ -9,7 +9,17 @@ export interface AiResult {
   opinion: AiOpinion | null;
   model?: string;
   error?: string;
+  /** Cada intento (modelo, forma de pedirlo y error), para el diagnóstico. */
+  intentos?: string[];
 }
+
+// Formas de pedir que el modelo no "razone" (cambian según la generación del modelo).
+type Thinking = "budget0" | "minimal" | "none";
+const THINKING: Record<Thinking, object> = {
+  budget0: { thinkingConfig: { thinkingBudget: 0 } },
+  minimal: { thinkingConfig: { thinkingLevel: "minimal" } },
+  none: {},
+};
 
 const SYSTEM = `Eres un asistente que ayuda a comerciantes de Bogotá (Colombia) a detectar phishing.
 Recibes un mensaje ANONIMIZADO y las señales que encontró un motor de reglas.
@@ -27,8 +37,8 @@ const FALLBACK_MODELS = [
   "gemini-2.5-flash",
   "gemini-flash-latest",
 ];
-const PER_MODEL_MS = 8000;
-const TOTAL_MS = 20000;
+const PER_MODEL_MS = 9000;
+const TOTAL_MS = 25000;
 
 export function aiEnabled(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
@@ -39,7 +49,7 @@ async function callModel(
   prompt: string,
   key: string,
   timeoutMs: number,
-  noThinking = true,
+  thinking: Thinking,
 ): Promise<AiResult> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -58,7 +68,7 @@ async function callModel(
             maxOutputTokens: 4096,
             responseMimeType: "application/json",
             // Para dos frases no hace falta que el modelo "razone": responde mucho más rápido.
-            ...(noThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            ...THINKING[thinking],
           },
         }),
       },
@@ -101,21 +111,24 @@ export async function askAiDetailed(anonymizedText: string, signals: Signal[]): 
   }`;
   const models = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter(Boolean))] as string[];
   const deadline = Date.now() + TOTAL_MS;
+  const intentos: string[] = [];
   let last: AiResult = { opinion: null, error: "sin modelos" };
-  for (const model of models) {
-    const left = deadline - Date.now();
-    if (left < 2000) break;
-    last = await callModel(model, prompt, key, Math.min(PER_MODEL_MS, left));
-    // Algunos modelos no aceptan apagar el razonamiento: se reintenta sin esa opción.
-    if (/HTTP 400/.test(last.error ?? "") && /thinking/i.test(last.error ?? "")) {
-      last = await callModel(model, prompt, key, Math.min(PER_MODEL_MS, deadline - Date.now()), false);
+  outer: for (const model of models) {
+    // Si el modelo rechaza la petición (HTTP 400), probamos la siguiente forma de pedirla.
+    for (const thinking of ["budget0", "minimal", "none"] as Thinking[]) {
+      const left = deadline - Date.now();
+      if (left < 2000) break outer;
+      last = await callModel(model, prompt, key, Math.min(PER_MODEL_MS, left), thinking);
+      intentos.push(`${model} [${thinking}]: ${last.opinion ? "ok" : (last.error ?? "").slice(0, 120)}`);
+      if (last.opinion) break outer;
+      if (!/HTTP 400/.test(last.error ?? "") || /API key/i.test(last.error ?? "")) break;
     }
-    if (last.opinion) break;
-    // Cambiamos de modelo si no existe o tardó; otros errores (llave, cuota) se repetirían igual.
-    if (!/HTTP 404|tiempo agotado/.test(last.error ?? "")) break;
+    // Cambiamos de modelo si no existe, tardó o no aceptó ninguna forma; una llave
+    // inválida o la cuota agotada se repetirían igual en todos.
+    if (/API key|HTTP 403|HTTP 429/i.test(last.error ?? "")) break;
   }
-  if (last.error) console.warn(`Gemini (${last.model ?? "-"}) falló:`, last.error);
-  return last;
+  if (last.error) console.warn("Gemini falló:", intentos.join(" | "));
+  return { ...last, intentos };
 }
 
 export async function askAi(anonymizedText: string, signals: Signal[]): Promise<AiOpinion | null> {

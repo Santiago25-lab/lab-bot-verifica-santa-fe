@@ -10,6 +10,21 @@ import { checkSafeBrowsing } from "./safeBrowsing";
 
 export const THRESHOLDS = { peligroso: 4, sospechoso: 2 };
 
+// Formas de PEDIR algo (imperativos y "me regalas"), no de informar ("te enviamos").
+const ASK =
+  "(compartenos|compartelo|compartela|comparte|compartir|compartirnos|envianos|enviame|envialo|enviala|mandame|mandanos|dame|danos|dime|dinos|regalame|regalanos|regalas|pasame|pasanos|dictame|dictanos|dicta|digita|reenviame|reenvianos|escribeme|escribenos|indicame|indicanos|confirmame|confirmanos|suministranos|facilitanos)";
+const SECRET = "(codigo|clave|contrasena|pin|token|otp)";
+const ASK_RE = new RegExp(`\\b${ASK}\\b[^.?!\\n]{0,40}?\\b${SECRET}\\b`, "g");
+const NEGATED = /\b(no|nunca|jamas)\s+(\S+\s+){0,2}$/;
+
+/** ¿El mensaje pide compartir un código o clave? Ignora avisos como "no compartas tu código". */
+export function asksForSecret(norm: string): string | null {
+  for (const m of norm.matchAll(ASK_RE)) {
+    if (!NEGATED.test(norm.slice(Math.max(0, m.index - 25), m.index))) return m[0];
+  }
+  return null;
+}
+
 export interface AnalyzeOptions {
   expandLinks?: boolean;
   safeBrowsing?: boolean;
@@ -163,7 +178,17 @@ export async function analyzeMessage(
     }
   }
 
-  // 4. Palabras clave.
+  // 4. Pedir un código o clave: ninguna entidad lo hace nunca.
+  const asked = asksForSecret(norm);
+  if (asked) {
+    add({
+      id: "pide_codigo",
+      detail: `Te pide compartir un código o clave ("${asked}"). Ningún banco ni entidad te lo pide nunca.`,
+      weight: THRESHOLDS.peligroso,
+    });
+  }
+
+  // 5. Palabras clave.
   const pedidos = kw("solicitud");
   if (pedidos.length) {
     add({
@@ -189,7 +214,7 @@ export async function analyzeMessage(
     });
   }
 
-  // 5. Reputación externa.
+  // 6. Reputación externa.
   if (opts.safeBrowsing && finals.length) {
     const bad = await checkSafeBrowsing(finals.map((f) => f.url));
     for (const f of finals) {
@@ -206,7 +231,7 @@ export async function analyzeMessage(
   let score = signals.reduce((sum, s) => sum + s.weight, 0);
   let verdict = verdictFor(score, isReceipt);
 
-  // 6. IA de apoyo: explica y puede SUBIR el nivel, nunca bajarlo.
+  // 7. IA de apoyo: explica y puede SUBIR el nivel, nunca bajarlo.
   let aiExplanation: string | undefined;
   if (opts.ai && norm.trim().length >= 12) {
     const opinion = await askAi(anonymize(text), signals);

@@ -134,3 +134,31 @@ describe("palabras clave repetidas", () => {
     expect(detail.match(/codigo que te llego/g)).toHaveLength(1);
   });
 });
+
+describe("pedir códigos o claves", () => {
+  const peligrosos = [
+    "hola somos de bancolombia te enviamos un codigo por una transaccion que hiciste compartenos el codigo",
+    "Hola, soy del banco, me regalas el código que te llegó?",
+    "Por favor dame la clave dinámica para cancelar la compra",
+    "Envíanos el código de 6 dígitos para validar tu cuenta",
+  ];
+  for (const text of peligrosos) {
+    it(`peligroso: ${text.slice(0, 40)}…`, async () => {
+      const a = await run(text);
+      expect(a.signals.map((s) => s.id)).toContain("pide_codigo");
+      expect(a.verdict).toBe("peligroso");
+    });
+  }
+
+  const avisos = [
+    "Bancolombia: tu código de verificación es 482913. No lo compartas con nadie.",
+    "Te enviamos un código de verificación. Nunca compartas este código.",
+    "Tu clave fue actualizada correctamente.",
+  ];
+  for (const text of avisos) {
+    it(`no confunde avisos legítimos: ${text.slice(0, 40)}…`, async () => {
+      const a = await run(text);
+      expect(a.signals.map((s) => s.id)).not.toContain("pide_codigo");
+    });
+  }
+});

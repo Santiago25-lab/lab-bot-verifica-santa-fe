@@ -17,6 +17,7 @@ const SIGNAL_LABEL: Record<string, string> = {
   solicitud: "Pide datos o pagos",
   urgencia: "Urgencia artificial",
   comprobante: "Comprobante de pago",
+  pide_codigo: "Pide compartir un código o clave",
   ia: "Detectado por IA",
 };
 
