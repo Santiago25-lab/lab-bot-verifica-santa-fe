@@ -18,6 +18,7 @@ export type SignalId =
   | "urgencia"
   | "comprobante"
   | "pide_codigo"
+  | "gancho"
   | "ia";
 
 export interface Signal {

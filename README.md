@@ -8,8 +8,11 @@ Un mismo motor de análisis atiende:
 | Parte | Ruta | Qué hace |
 | --- | --- | --- |
 | Bot de WhatsApp | `/api/whatsapp` | Recibe mensajes, links y capturas reenviados y responde con semáforo, simulacros y triage |
-| Bot web | `/verificar` | El mismo bot dentro de la página |
-| Aula virtual | `/aula` | Pruebas y encuestas sin registro |
+| Inicio | `/` | Tres acciones grandes (revisar, practicar, ya caí), ejemplos con un toque y el semáforo explicado |
+| Bot web | `/verificar` | El mismo bot dentro de la página (`/verificar?m=texto` lo envía solo) |
+| Ayuda urgente | `/ayuda` | Botones para llamar al 165 y al 123, pasos por caso y alerta vecinal para copiar |
+| Aula virtual | `/aula` | Pruebas de entrada y salida, prácticas y encuesta, sin registro |
+| Afiche con QR | `/afiche` | Afiche imprimible para la Escuela Móvil |
 | Panel del equipo | `/admin` | Listas, palabras clave, contactos, simulacros, aula e indicadores |
 | Aviso de privacidad | `/privacidad` | Ley 1581 de 2012 |
 
@@ -24,6 +27,18 @@ Un mismo motor de análisis atiende:
 3. **IA de apoyo (Gemini, opcional)**: recibe el texto **anonimizado**, redacta una explicación
    sencilla y puede **subir** el nivel de 🟢 a 🟡. Nunca lo baja ni decide sola.
 4. **Capturas de pantalla**: se leen con OCR (Tesseract, español incluido en el proyecto).
+
+Además: la regla `pide_codigo` marca 🔴 cualquier pedido de un código, clave o PIN; se detectan
+ganchos típicos (premios, "cambié de número", empleos y préstamos falsos, QR nuevos); cada
+veredicto trae un consejo 💡 para aprender la señal; y el bot entiende "gracias", "¿qué hago?",
+"¿qué es phishing?" y "cómo denuncio".
+
+**Límites de la IA:** solo analiza mensajes recibidos (a una pregunta general responde que no es un
+mensaje), trata el texto como dato y nunca como orden, no recibe textos que intentan manipularla,
+su explicación se limpia (sin links ni teléfonos, máx. 2 frases) y nunca puede bajar un veredicto.
+
+**Antes y después:** el panel compara la prueba de entrada (`prueba-de-entrada`) con la de salida
+(`prueba-de-salida`) de cada ID anónimo para medir la capacidad de reconocer señales.
 
 Después de un 🔴 o 🟡 el bot pregunta si la persona ya actuó y la deriva (banco, línea 165,
 CAI Virtual, 123) con una alerta lista para reenviar al frente de seguridad de la cuadra.

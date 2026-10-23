@@ -155,9 +155,14 @@ export function AdminApp() {
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Panel del equipo</h1>
-        <button type="button" onClick={() => void logout()} className="w-fit rounded-lg border border-black/10 bg-white px-3 py-2 text-sm">
-          Cerrar sesión
-        </button>
+        <div className="flex gap-2">
+          <a href="/afiche" target="_blank" rel="noopener" className="w-fit rounded-lg border border-black/10 bg-white px-3 py-2 text-sm">
+            🖨️ Afiche con QR
+          </a>
+          <button type="button" onClick={() => void logout()} className="w-fit rounded-lg border border-black/10 bg-white px-3 py-2 text-sm">
+            Cerrar sesión
+          </button>
+        </div>
       </div>
       <ul className="flex flex-wrap gap-2 text-xs">
         {chips.map(([label, ok]) => (

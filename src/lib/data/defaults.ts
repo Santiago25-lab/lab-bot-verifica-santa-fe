@@ -14,7 +14,7 @@ import type {
  */
 
 /** Súbelo al agregar datos iniciales: la app los añade a una base ya cargada. */
-export const SEED_VERSION = "2";
+export const SEED_VERSION = "3";
 
 const white: [string, string, boolean][] = [
   ["dian.gov.co", "DIAN", true],
@@ -294,7 +294,89 @@ const likert = [
   "5 · Totalmente de acuerdo",
 ];
 
+const fr = (prompt: string, scenario: string, fraude: boolean, explanation: string) => ({
+  prompt,
+  scenario,
+  options: fraudeOReal,
+  correct_index: fraude ? 0 : 1,
+  explanation,
+});
+
+/** Slugs fijos: el panel compara la prueba de entrada con la de salida de cada persona. */
+export const PRE_SLUG = "prueba-de-entrada";
+export const POST_SLUG = "prueba-de-salida";
+
 export const defaultQuizzes: Quiz[] = [
+  {
+    id: "q-entrada",
+    slug: PRE_SLUG,
+    title: "Prueba de entrada",
+    description: "Empieza aquí: 6 preguntas para saber cuánto reconoces hoy. Al final haz la prueba de salida.",
+    kind: "prueba",
+    published: true,
+    sort: 0,
+    questions: [
+      { id: "pe-1", ...fr("Te llega este SMS. ¿Qué es?", "Bancolombia: su cuenta fue bloqueada. Ingrese aquí para desbloquearla: bancolombia-seguridad.co", true, "El dominio no es bancolombia.com y te apura con un bloqueo.") },
+      { id: "pe-2", ...fr("Te llega esta notificación. ¿Qué es?", "Nequi: recibiste $50.000 de JUAN P. Consulta tu saldo en la app.", false, "No trae link ni pide nada: solo te invita a revisar en tu app.") },
+      {
+        id: "pe-3",
+        prompt: "¿Cómo termina la dirección de una página del Gobierno de Colombia?",
+        options: [".com", ".gov.co", ".co", ".net"],
+        correct_index: 1,
+        explanation: "Todas las páginas del Gobierno terminan en .gov.co.",
+      },
+      { id: "pe-4", ...fr("Te escriben de un número nuevo. ¿Qué es?", "Hola tía, soy tu sobrino, cambié de número. Préstame 200 mil que mañana te devuelvo.", true, "Llámalo a su número de siempre antes de enviar dinero.") },
+      {
+        id: "pe-5",
+        prompt: "Te llaman «del banco» y te piden el código que te llegó por SMS. ¿Qué haces?",
+        options: ["Se lo doy, es del banco", "Cuelgo y llamo yo al número de mi tarjeta", "Le doy solo una parte"],
+        correct_index: 1,
+        explanation: "Ningún banco te pide ese código. Es la llave de tu cuenta.",
+      },
+      {
+        id: "pe-6",
+        prompt: "¿A qué línea llamas para denunciar un fraude o una extorsión?",
+        options: ["165", "911", "018000"],
+        correct_index: 0,
+        explanation: "La línea 165 de la Policía es gratuita y atiende 24 horas.",
+      },
+    ],
+  },
+  {
+    id: "q-salida",
+    slug: POST_SLUG,
+    title: "Prueba de salida",
+    description: "Hazla después de usar el bot o de la Escuela Móvil para ver cuánto mejoraste.",
+    kind: "prueba",
+    published: true,
+    sort: 4,
+    questions: [
+      { id: "ps-1", ...fr("Te llega este mensaje. ¿Qué es?", "DIAN: tiene una sanción pendiente. Pague hoy para evitar el embargo: dian-sanciones.com", true, "No termina en .gov.co y te amenaza con embargo.") },
+      { id: "ps-2", ...fr("Te llega este SMS. ¿Qué es?", "Davivienda: compra por $32.000 en Olímpica. Si no la reconoces, llama a la línea de tu tarjeta.", false, "No trae link y te manda a un canal que ya conoces.") },
+      {
+        id: "ps-3",
+        prompt: "Un link dice ser de Bancolombia. ¿Cuál es el oficial?",
+        options: ["bancolombia-pagos.com", "bancolombia.com", "bancolonbia.com"],
+        correct_index: 1,
+        explanation: "Un guion o una letra cambiada es la trampa más común.",
+      },
+      { id: "ps-4", ...fr("Te llega este WhatsApp. ¿Qué es?", "¡Felicidades! Ganaste un bono de $300.000. Reclámalo con tus datos en premios-colombia.online", true, "Nadie regala dinero por WhatsApp.") },
+      {
+        id: "ps-5",
+        prompt: "Un cliente te muestra un pantallazo de pago. ¿Qué haces antes de entregar?",
+        options: ["Entrego, el pantallazo basta", "Reviso en MI app que el dinero llegó", "Le pido otro pantallazo"],
+        correct_index: 1,
+        explanation: "Solo tu propia app confirma el pago.",
+      },
+      {
+        id: "ps-6",
+        prompt: "Si ya le diste tus claves a un estafador, ¿qué haces primero?",
+        options: ["Esperar a ver qué pasa", "Llamar al banco para bloquear y denunciar al 165", "Borrar los mensajes"],
+        correct_index: 1,
+        explanation: "Bloquear rápido evita más pérdidas; los mensajes son tus pruebas.",
+      },
+    ],
+  },
   {
     id: "q-fraude-o-real",
     slug: "fraude-o-real",

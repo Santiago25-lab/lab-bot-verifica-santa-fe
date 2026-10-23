@@ -18,6 +18,7 @@ const SIGNAL_LABEL: Record<string, string> = {
   urgencia: "Urgencia artificial",
   comprobante: "Comprobante de pago",
   pide_codigo: "Pide compartir un código o clave",
+  gancho: "Gancho típico (premio, familiar, empleo...)",
   ia: "Detectado por IA",
 };
 
@@ -44,7 +45,15 @@ function Tile({ label, value, hint }: { label: string; value: string | number; h
 }
 
 /** Barras horizontales de una sola serie, con etiqueta y valor visibles. */
-function Bars({ rows, color = "var(--color-series)" }: { rows: { label: string; n: number; color?: string }[]; color?: string }) {
+function Bars({
+  rows,
+  color = "var(--color-series)",
+  suffix = "",
+}: {
+  rows: { label: string; n: number; color?: string }[];
+  color?: string;
+  suffix?: string;
+}) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   if (!rows.length) return <p className="text-sm text-muted">Sin datos todavía.</p>;
   return (
@@ -55,7 +64,10 @@ function Bars({ rows, color = "var(--color-series)" }: { rows: { label: string; 
           <span className="h-4 rounded-r bg-black/[0.04]">
             <span className="block h-full rounded-r" style={{ width: `${(r.n / max) * 100}%`, background: r.color ?? color, minWidth: r.n ? 4 : 0 }} />
           </span>
-          <span className="text-right font-medium tabular-nums">{r.n}</span>
+          <span className="text-right font-medium tabular-nums">
+            {r.n}
+            {suffix}
+          </span>
         </li>
       ))}
     </ul>
@@ -110,6 +122,40 @@ export function MetricsView() {
         <Tile label="Aciertos en simulacros" value={`${t.aciertoSimulacros}%`} hint={`${t.simulacros} simulacros respondidos`} />
         <Tile label="Derivaciones y alertas" value={t.triage + t.alertas} hint={`${t.triage} triage · ${t.alertas} alertas vecinales`} />
       </div>
+
+      <Card title="Antes y después: capacidad para reconocer señales">
+        {m.antesDespues.personas ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">
+              {m.antesDespues.personas === 1
+                ? "1 persona hizo"
+                : `${m.antesDespues.personas} personas hicieron`}{" "}
+              la prueba de entrada y la de salida.{" "}
+              <strong className="text-ink">{m.antesDespues.mejoraron}% mejoró</strong> su puntaje.
+            </p>
+            <Bars
+              rows={[
+                { label: "Prueba de entrada", n: m.antesDespues.antes, color: "var(--color-muted)" },
+                { label: "Prueba de salida", n: m.antesDespues.despues },
+              ]}
+              suffix="%"
+            />
+            <p className="text-sm">
+              Cambio promedio:{" "}
+              <strong>
+                {m.antesDespues.despues - m.antesDespues.antes >= 0 ? "+" : ""}
+                {m.antesDespues.despues - m.antesDespues.antes} puntos
+              </strong>{" "}
+              (puntaje en %).
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Aún no hay personas con ambas pruebas. {m.antesDespues.soloEntrada} hicieron solo la de
+            entrada. Pide en la Escuela Móvil que hagan la de entrada al inicio y la de salida al final.
+          </p>
+        )}
+      </Card>
 
       <Card title="Verificaciones por día (últimos 30 días)">
         <div className="relative">

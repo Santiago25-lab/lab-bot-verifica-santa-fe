@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 
 export default function VerificarPage() {
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_320px]">
+    <div className="mx-auto grid max-w-6xl gap-6 sm:px-4 sm:py-6 lg:grid-cols-[1fr_320px]">
       <Chat />
-      <aside className="space-y-4 text-sm">
+      <aside className="space-y-4 px-4 pb-6 text-sm sm:px-0">
         <div className="rounded-2xl border border-black/5 bg-white p-5">
           <h1 className="text-lg font-bold">Cómo usarlo</h1>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted">

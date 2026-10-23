@@ -1,3 +1,4 @@
+import { POST_SLUG, PRE_SLUG } from "@/lib/data/defaults";
 import type { AttemptRow, EventRow, Quiz } from "@/lib/types";
 
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
@@ -61,7 +62,26 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
       };
     });
 
+  // Antes y después: primera prueba de entrada vs. última prueba de salida de cada persona.
+  const byTime = [...attempts].sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)));
+  const pre = new Map<string, number>();
+  const post = new Map<string, number>();
+  for (const a of byTime) {
+    if (a.quiz_slug === PRE_SLUG && !pre.has(a.anon_id)) pre.set(a.anon_id, pct(a.score, a.total));
+    if (a.quiz_slug === POST_SLUG) post.set(a.anon_id, pct(a.score, a.total));
+  }
+  const pairs = [...pre].filter(([id]) => post.has(id)).map(([id, before]) => [before, post.get(id)!]);
+  const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : 0);
+  const antesDespues = {
+    personas: pairs.length,
+    antes: avg(pairs.map(([b]) => b)),
+    despues: avg(pairs.map(([, a]) => a)),
+    mejoraron: pct(pairs.filter(([b, a]) => a > b).length, pairs.length),
+    soloEntrada: pre.size - pairs.length,
+  };
+
   return {
+    antesDespues,
     totales: {
       personas: people.size,
       verificaciones: verifs.length,

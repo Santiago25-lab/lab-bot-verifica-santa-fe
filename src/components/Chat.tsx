@@ -40,7 +40,7 @@ export function Chat() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const state = useRef<BotState>({});
-  const bottom = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const started = useRef(false);
 
@@ -72,11 +72,19 @@ export function Chat() {
     if (started.current) return;
     started.current = true;
     state.current = loadState();
-    void send({ kind: "button", id: "menu" });
+    // Un ejemplo desde el inicio llega como ?m=texto: se envía solo después del menú.
+    const example = new URLSearchParams(window.location.search).get("m")?.slice(0, 1000);
+    if (example) window.history.replaceState(null, "", window.location.pathname);
+    void (async () => {
+      await send({ kind: "button", id: "menu" });
+      if (example) await send({ kind: "text", text: example }, { from: "user", text: example });
+    })();
   }, []);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Desplaza solo el chat (no la página) hasta el último mensaje.
+    const list = scroller.current;
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages, busy]);
 
   function submitText(e: React.FormEvent) {
@@ -107,7 +115,7 @@ export function Chat() {
   const lastBot = messages.findLastIndex((m) => m.from === "bot");
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] min-h-[520px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
+    <div className="flex h-[calc(100dvh-8.5rem)] min-h-[420px] flex-col overflow-hidden border-black/10 bg-white shadow-sm sm:h-[calc(100dvh-9rem)] sm:min-h-[520px] sm:rounded-2xl sm:border">
       <div className="flex items-center gap-3 bg-brand-800 px-4 py-3 text-white">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg" aria-hidden="true">
           🛡️
@@ -118,7 +126,7 @@ export function Chat() {
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto bg-[#efeae2] p-4" aria-live="polite">
+      <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto bg-[#efeae2] p-3 sm:p-4" aria-live="polite">
         {messages.map((m, i) =>
           m.from === "user" ? (
             <div key={i} className="ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#d9fdd3] p-3 text-sm shadow-sm">
@@ -161,7 +169,6 @@ export function Chat() {
             {error}
           </div>
         )}
-        <div ref={bottom} />
       </div>
 
       <form onSubmit={submitText} className="flex items-end gap-2 border-t border-black/10 bg-white p-3">

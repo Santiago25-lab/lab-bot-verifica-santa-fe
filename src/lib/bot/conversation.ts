@@ -4,6 +4,7 @@ import { ocrImage } from "@/lib/engine/ocr";
 import { normalize } from "@/lib/text";
 import type {
   Analysis,
+  Signal,
   AppConfig,
   Channel,
   EventRow,
@@ -103,6 +104,22 @@ const HEADER: Record<Analysis["verdict"], string> = {
   sin_senales: "🟢 *SIN SEÑALES EVIDENTES*",
 };
 
+/** Un consejo corto para aprender a reconocer la señal más importante la próxima vez. */
+const TIPS: Partial<Record<Signal["id"], string>> = {
+  pide_codigo: "Los códigos que te llegan por SMS son como la llave de tu cuenta: no se comparten con nadie, ni siquiera con «el banco».",
+  imitacion: "Lee la dirección completa antes de abrirla: un guion o una letra cambiada (dian-col, bancolonbia) es la trampa.",
+  gov_sin_govco: "Toda página del Gobierno de Colombia termina en .gov.co. Si no termina así, no es del Gobierno.",
+  entidad_link_no_oficial: "Entra siempre escribiendo tú la dirección oficial o desde la app, nunca desde el link del mensaje.",
+  lista_negra: "Este sitio ya fue reportado. Si te llegó, avísale a tu frente de seguridad para que nadie más caiga.",
+  reputacion: "Google ya marcó este sitio como peligroso. No lo abras ni desde otro celular.",
+  link_acortado: "Los links acortados (bit.ly y similares) esconden el destino real. Pide la dirección completa.",
+  remitente_no_oficial: "Las entidades escriben desde su propio dominio, no desde Gmail ni Hotmail.",
+  solicitud: "Ninguna entidad te pide claves, códigos o pagos por un link en un mensaje.",
+  urgencia: "La prisa es la herramienta del estafador. Si te apuran, detente y confirma por otro canal.",
+  comprobante: "El único comprobante que vale es el saldo en TU app. Revisa antes de entregar.",
+  gancho: "Si suena demasiado bueno o urgente para ser verdad, casi siempre es una trampa.",
+};
+
 export function formatAnalysis(a: Analysis): string {
   const lines = [HEADER[a.verdict]];
   const visible = a.signals.filter((s) => s.id !== "comprobante" || a.signals.length === 1);
@@ -135,6 +152,8 @@ export function formatAnalysis(a: Analysis): string {
       "👉 Que no vea señales no garantiza que sea seguro. Si te piden dinero o datos, confirma por otro canal.",
     );
   }
+  const tip = a.signals.map((s) => TIPS[s.id]).find(Boolean);
+  if (tip) lines.push("", `💡 *Aprende:* ${tip}`);
   return lines.join("\n");
 }
 
@@ -197,7 +216,7 @@ async function verify(
 
 /* ---------- Triage ---------- */
 
-const CASES: Record<TriageCase, { title: string; steps: string[] }> = {
+export const TRIAGE_CASES: Record<TriageCase, { title: string; steps: string[] }> = {
   pago: {
     title: "Pagué o transferí",
     steps: [
@@ -237,9 +256,9 @@ function triageList(): BotReply {
     text: "Tranquilo, actuemos rápido. ¿Qué pasó?",
     list: {
       button: "Elegir",
-      rows: (Object.keys(CASES) as TriageCase[]).map((id) => ({
+      rows: (Object.keys(TRIAGE_CASES) as TriageCase[]).map((id) => ({
         id: `case_${id}`,
-        title: CASES[id].title,
+        title: TRIAGE_CASES[id].title,
       })),
     },
   };
@@ -262,7 +281,7 @@ function alertReply(state: BotState): BotReply {
 }
 
 function caseReply(c: TriageCase, ctx: BotContext): BotReply {
-  const info = CASES[c];
+  const info = TRIAGE_CASES[c];
   const contacts = ctx.config.contacts
     .filter((x) => x.cases.includes(c) && (x.phone || x.url || x.description))
     .sort((a, b) => a.sort - b.sort);
@@ -340,6 +359,11 @@ export async function handleMessage(
       else if (["denunciar", "ya cai", "cai", "me estafaron", "me robaron"].includes(n))
         buttonId = "menu_triage";
       else if (n === "ayuda") buttonId = "ayuda";
+      else if (/^(muchas )?gracias|^(ok|listo|vale|dale) gracias|^mil gracias/.test(n)) buttonId = "gracias";
+      else if (/^(y )?(ahora )?que (hago|debo hacer|hago ahora)$/.test(n)) {
+        buttonId = state.alert ? "triage_si" : "ayuda";
+      } else if (/^que es (el |un )?(phishing|smishing|vishing|eso|fraude|estafa)$/.test(n)) buttonId = "que_es";
+      else if (/^(como|donde) (denuncio|puedo denunciar|denunciar)|^quiero denunciar/.test(n)) buttonId = "denuncia";
       else if (n === "verificar") buttonId = "menu_verificar";
     }
   }
@@ -350,6 +374,38 @@ export async function handleMessage(
         return done({ replies: [menu()], state: { ...state, step: "idle" } });
       case "ayuda":
         return done({ replies: [help()], state: { ...state, step: "idle" } });
+      case "gracias":
+        return done({
+          replies: [
+            menu("🙌 ¡Con gusto! Si te llega otro mensaje raro, mándamelo antes de responder o pagar."),
+          ],
+          state: { ...state, step: "idle" },
+        });
+      case "que_es":
+        return done({
+          replies: [
+            menu(
+              "📚 *Phishing* es cuando alguien se hace pasar por una entidad (banco, DIAN, Nequi, un familiar) para robarte dinero o datos.\n" +
+                "• Por SMS se llama *smishing* y por llamada *vishing*.\n" +
+                "• Siempre usan una de estas trampas: un link falso, prisa, un premio, o pedirte un código o una clave.\n" +
+                "Cuando dudes, mándame el mensaje y lo reviso.",
+            ),
+          ],
+          state: { ...state, step: "idle" },
+        });
+      case "denuncia":
+        return done({
+          replies: [
+            menu(
+              "📣 *Cómo denunciar*\n" +
+                "• Llama gratis a la *línea 165* de la Policía (24 horas).\n" +
+                "• En línea: *CAI Virtual* (caivirtual.policia.gov.co).\n" +
+                "• Si hay peligro inmediato: *123*.\n" +
+                "Guarda los mensajes, números y comprobantes: son tus pruebas.",
+            ),
+          ],
+          state: { ...state, step: "idle" },
+        });
       case "menu_verificar":
         return done({
           replies: [
@@ -413,7 +469,7 @@ export async function handleMessage(
       default:
         if (buttonId.startsWith("case_")) {
           const c = buttonId.slice(5) as TriageCase;
-          if (c in CASES) {
+          if (c in TRIAGE_CASES) {
             await ctx.log({ type: "triage", data: { case: c } });
             await ctx.log({ type: "alerta" });
             return done({

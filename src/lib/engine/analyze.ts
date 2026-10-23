@@ -17,6 +17,30 @@ const SECRET = "(codigo|clave|contrasena|pin|token|otp)";
 const ASK_RE = new RegExp(`\\b${ASK}\\b[^.?!\\n]{0,40}?\\b${SECRET}\\b`, "g");
 const NEGATED = /\b(no|nunca|jamas)\s+(\S+\s+){0,2}$/;
 
+/** Ganchos típicos de estafas en Colombia, sobre el texto normalizado. */
+export const HOOKS: { re: RegExp; detail: string }[] = [
+  {
+    re: /\b(ganaste|ganador|has sido (seleccionad[oa]|elegid[oa])|reclama(r)? (tu|el|su) (premio|bono|regalo)|sorteo)\b/,
+    detail: "Te ofrece un premio, bono o sorteo que no pediste.",
+  },
+  {
+    re: /(cambie de (numero|celular)|este es mi (nuevo )?numero|perdi mi celular|se me (dano|perdio) el celular|soy tu (hijo|hija|mama|papa|sobrin[oa]|prim[oa]|tia|tio))/,
+    detail: "Dice ser un familiar o conocido con número nuevo. Llámalo a su número de siempre antes de enviar algo.",
+  },
+  {
+    re: /(trabajo desde (casa|tu casa)|gana (dinero|hasta)|ingresos extra|te pagamos por|por dar like|oferta de empleo sin experiencia)/,
+    detail: "Promete dinero fácil o un empleo demasiado bueno.",
+  },
+  {
+    re: /(prestamo (pre)?aprobado|credito (pre)?aprobado|sin (centrales|datacredito|codeudor)|desembolso inmediato)/,
+    detail: "Ofrece un préstamo «aprobado» sin que lo pidieras (suelen cobrar por adelantado).",
+  },
+  {
+    re: /(escanea (este|el) (codigo )?qr|nuevo (codigo )?qr|cambiamos (el|nuestro) (codigo )?qr)/,
+    detail: "Te pide usar un código QR nuevo. Confirma con la empresa antes de pagar con él.",
+  },
+];
+
 /** ¿El mensaje pide compartir un código o clave? Ignora avisos como "no compartas tu código". */
 export function asksForSecret(norm: string): string | null {
   for (const m of norm.matchAll(ASK_RE)) {
@@ -188,9 +212,14 @@ export async function analyzeMessage(
     });
   }
 
+  for (const hook of HOOKS) {
+    if (hook.re.test(norm)) add({ id: "gancho", detail: hook.detail, weight: 2 });
+  }
+
   // 5. Palabras clave.
   const pedidos = kw("solicitud");
-  if (pedidos.length) {
+  // Si ya se detectó el pedido de un código, no lo repetimos como pedido genérico.
+  if (pedidos.length && !asked) {
     add({
       id: "solicitud",
       detail: `Te pide datos, claves o pagos ("${pedidos.slice(0, 2).join('", "')}").`,
