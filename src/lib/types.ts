@@ -110,6 +110,8 @@ export interface Analysis {
   isReceipt: boolean;
   aiExplanation?: string;
   hadText: boolean;
+  /** La IA indicó que el texto no es un mensaje recibido (pregunta general, charla...). */
+  offTopic?: boolean;
 }
 
 export type EventType =

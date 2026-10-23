@@ -1,7 +1,7 @@
 import { FREE_MAIL } from "@/lib/data/defaults";
 import { containsPhrase, normalize } from "@/lib/text";
 import type { Analysis, AppConfig, DomainEntry, Signal, Verdict } from "@/lib/types";
-import { askAi } from "./ai";
+import { askAi, looksLikeManipulation } from "./ai";
 import { anonymize } from "./anonymize";
 import { findImitation, findListed, isGov, isShortener, labelOf } from "./domains";
 import { expandUrl } from "./expand";
@@ -233,9 +233,13 @@ export async function analyzeMessage(
 
   // 7. IA de apoyo: explica y puede SUBIR el nivel, nunca bajarlo.
   let aiExplanation: string | undefined;
-  if (opts.ai && norm.trim().length >= 12) {
+  let offTopic = false;
+  if (opts.ai && norm.trim().length >= 12 && !looksLikeManipulation(norm)) {
     const opinion = await askAi(anonymize(text), signals);
-    if (opinion) {
+    if (opinion && !opinion.esMensaje) {
+      // No es un mensaje recibido: no damos veredicto ni explicación de la IA.
+      offTopic = signals.length === 0;
+    } else if (opinion) {
       aiExplanation = opinion.explicacion || undefined;
       if (verdict === "sin_senales" && opinion.nivel !== "bajo") {
         add({
@@ -260,5 +264,6 @@ export async function analyzeMessage(
     isReceipt,
     aiExplanation,
     hadText: norm.trim().length > 0,
+    offTopic,
   };
 }

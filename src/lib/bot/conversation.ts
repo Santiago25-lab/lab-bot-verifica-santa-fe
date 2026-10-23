@@ -150,6 +150,16 @@ async function verify(
     safeBrowsing: true,
     ai: useAi,
   });
+  if (a.offTopic) {
+    return {
+      replies: [
+        menu(
+          "🤔 Eso no parece un mensaje que te haya llegado. Solo puedo revisar mensajes, links o capturas sospechosas: pégame el mensaje tal cual lo recibiste.",
+        ),
+      ],
+      state: { ...state, step: "idle" },
+    };
+  }
   await ctx.log({
     type: "verificacion",
     verdict: a.verdict,
