@@ -43,10 +43,13 @@ export async function analyzeMessage(
   const add = (s: Signal) => {
     if (!signals.some((x) => x.id === s.id && x.detail === s.detail)) signals.push(s);
   };
-  const kw = (category: string) =>
-    config.keywords
+  const kw = (category: string) => {
+    const found = config.keywords
       .filter((k) => k.category === category && containsPhrase(norm, k.phrase))
-      .map((k) => k.phrase);
+      .map((k) => normalize(k.phrase));
+    // Sin repetir frases contenidas en otra ("codigo que te llego" dentro de "el codigo que te llego").
+    return [...new Set(found)].filter((p) => !found.some((o) => o !== p && o.includes(p)));
+  };
 
   // 1. Links, expandiendo los acortados.
   const urls = extractUrls(text);

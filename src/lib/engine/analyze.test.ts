@@ -125,3 +125,12 @@ describe("pedidos de código", () => {
     expect(a.verdict).not.toBe("sin_senales");
   });
 });
+
+describe("palabras clave repetidas", () => {
+  it("no muestra una frase que ya está dentro de otra", async () => {
+    const a = await run("me regalas el código que te llegó");
+    const detail = a.signals.find((s) => s.id === "solicitud")?.detail ?? "";
+    expect(detail).toContain("el codigo que te llego");
+    expect(detail.match(/codigo que te llego/g)).toHaveLength(1);
+  });
+});
