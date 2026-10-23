@@ -33,6 +33,12 @@ ganchos típicos (premios, "cambié de número", empleos y préstamos falsos, QR
 veredicto trae un consejo 💡 para aprender la señal; y el bot entiende "gracias", "¿qué hago?",
 "¿qué es phishing?" y "cómo denuncio".
 
+**Faltas de ortografía:** antes de aplicar las reglas, `src/lib/typos.ts` corrige "a oído" cada
+palabra hacia un vocabulario de palabras importantes (v/b, s/z/c, ll/y, h muda, c/k/qu, g/j) y
+tolera letras de más o de menos y teclas vecinas. Así "conpartenos el codijo", "grasias" o
+"phisibg" se entienden, sin tocar links ni números y sin cambiar palabras comunes
+("encargo" no se vuelve "embargo").
+
 **Límites de la IA:** solo analiza mensajes recibidos (a una pregunta general responde que no es un
 mensaje), trata el texto como dato y nunca como orden, no recibe textos que intentan manipularla,
 su explicación se limpia (sin links ni teléfonos, máx. 2 frases) y nunca puede bajar un veredicto.

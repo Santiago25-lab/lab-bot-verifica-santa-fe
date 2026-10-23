@@ -1,5 +1,6 @@
 import { FREE_MAIL } from "@/lib/data/defaults";
 import { containsPhrase, normalize } from "@/lib/text";
+import { buildVocab, correctTypos, type Vocab } from "@/lib/typos";
 import type { Analysis, AppConfig, DomainEntry, Signal, Verdict } from "@/lib/types";
 import { askAi, looksLikeManipulation } from "./ai";
 import { anonymize } from "./anonymize";
@@ -49,6 +50,36 @@ export function asksForSecret(norm: string): string | null {
   return null;
 }
 
+// Palabras de los ganchos y de la conversación que el corrector debe reconocer.
+const EXTRA_WORDS = [
+  "ganaste ganador seleccionado seleccionada elegido premio bono regalo sorteo reclama reclamar",
+  "cambie numero celular perdi perdio hijo hija mama papa sobrino sobrina primo prima",
+  "trabajo ingresos dinero empleo experiencia pagamos prestamo credito aprobado preaprobado",
+  "centrales datacredito codeudor desembolso inmediato escanea cambiamos nuestro nuevo",
+  "gracias phishing smishing vishing fraude estafa denuncio denunciar denuncia simulacro",
+  "verificar ayuda transferi consigne comprobante pantallazo urgente bloqueada bloqueado",
+];
+
+const vocabCache = new WeakMap<object, Vocab>();
+
+/** Vocabulario del corrector: palabras clave, entidades, pedidos de código y ganchos. */
+export function vocabFor(config: AppConfig): Vocab {
+  const cached = vocabCache.get(config.keywords);
+  if (cached) return cached;
+  const vocab = buildVocab(
+    [
+      ...config.keywords.map((k) => k.phrase),
+      ...config.domains.filter((d) => d.list === "blanca").flatMap((d) => [d.entity, labelOf(d.domain)]),
+      SECRET.replace(/[()]/g, "").replace(/\|/g, " "),
+      ...EXTRA_WORDS,
+    ],
+    // Los verbos de pedido solo se corrigen si suenan igual ("conpartenos" = "compartenos").
+    [ASK.replace(/[()]/g, "").replace(/\|/g, " ")],
+  );
+  vocabCache.set(config.keywords, vocab);
+  return vocab;
+}
+
 export interface AnalyzeOptions {
   expandLinks?: boolean;
   safeBrowsing?: boolean;
@@ -77,6 +108,8 @@ export async function analyzeMessage(
   opts: AnalyzeOptions = {},
 ): Promise<Analysis> {
   const norm = normalize(text);
+  // Texto con las faltas de ortografía corregidas: lo usan las reglas de palabras.
+  const fixed = correctTypos(norm, vocabFor(config));
   const whitelist = config.domains.filter((d) => d.list === "blanca");
   const signals: Signal[] = [];
   const add = (s: Signal) => {
@@ -84,7 +117,7 @@ export async function analyzeMessage(
   };
   const kw = (category: string) => {
     const found = config.keywords
-      .filter((k) => k.category === category && containsPhrase(norm, k.phrase))
+      .filter((k) => k.category === category && containsPhrase(fixed, k.phrase))
       .map((k) => normalize(k.phrase));
     // Sin repetir frases contenidas en otra ("codigo que te llego" dentro de "el codigo que te llego").
     return [...new Set(found)].filter((p) => !found.some((o) => o !== p && o.includes(p)));
@@ -119,7 +152,7 @@ export async function analyzeMessage(
   }
 
   // 2. Entidades mencionadas en el texto.
-  const mentioned = whitelist.filter((e) => entityAliases(e).some((a) => containsPhrase(norm, a)));
+  const mentioned = whitelist.filter((e) => entityAliases(e).some((a) => containsPhrase(fixed, a)));
   const govWords = kw("entidad_publica");
   const entities = new Set<string>(mentioned.map((e) => e.entity));
 
@@ -203,7 +236,7 @@ export async function analyzeMessage(
   }
 
   // 4. Pedir un código o clave: ninguna entidad lo hace nunca.
-  const asked = asksForSecret(norm);
+  const asked = asksForSecret(fixed);
   if (asked) {
     add({
       id: "pide_codigo",
@@ -213,7 +246,7 @@ export async function analyzeMessage(
   }
 
   for (const hook of HOOKS) {
-    if (hook.re.test(norm)) add({ id: "gancho", detail: hook.detail, weight: 2 });
+    if (hook.re.test(fixed)) add({ id: "gancho", detail: hook.detail, weight: 2 });
   }
 
   // 5. Palabras clave.
@@ -263,7 +296,7 @@ export async function analyzeMessage(
   // 7. IA de apoyo: explica y puede SUBIR el nivel, nunca bajarlo.
   let aiExplanation: string | undefined;
   let offTopic = false;
-  if (opts.ai && norm.trim().length >= 12 && !looksLikeManipulation(norm)) {
+  if (opts.ai && norm.trim().length >= 12 && !looksLikeManipulation(fixed)) {
     const opinion = await askAi(anonymize(text), signals);
     if (opinion && !opinion.esMensaje) {
       // No es un mensaje recibido: no damos veredicto ni explicación de la IA.

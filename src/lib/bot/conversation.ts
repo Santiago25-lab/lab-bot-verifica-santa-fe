@@ -1,7 +1,8 @@
-import { analyzeMessage } from "@/lib/engine/analyze";
+import { analyzeMessage, vocabFor } from "@/lib/engine/analyze";
 import { aiEnabled } from "@/lib/engine/ai";
 import { ocrImage } from "@/lib/engine/ocr";
 import { normalize } from "@/lib/text";
+import { correctTypos } from "@/lib/typos";
 import type {
   Analysis,
   Signal,
@@ -344,7 +345,11 @@ export async function handleMessage(
   if (input.kind === "button") buttonId = input.id;
   if (input.kind === "text") {
     text = input.text.trim();
-    const n = normalize(text).replace(/[^a-z0-9 ]/g, "").trim();
+    // Sin signos y con las faltas corregidas ("grasias", "que es el phisibg").
+    const n = correctTypos(
+      normalize(text).replace(/[^a-z0-9ñ ]/g, "").replace(/\s+/g, " ").trim(),
+      vocabFor(ctx.config),
+    );
     if (state.step === "simulacro") {
       if (["fraude", "es fraude", "1"].includes(n)) buttonId = "sim_fraude";
       if (["real", "es real", "2"].includes(n)) buttonId = "sim_real";
