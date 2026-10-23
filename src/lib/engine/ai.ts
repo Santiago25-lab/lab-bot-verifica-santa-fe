@@ -20,16 +20,29 @@ Responde SOLO un JSON: {"nivel":"alto"|"medio"|"bajo","explicacion":"..."}.
 - Nunca digas que un mensaje es "seguro". Si parece normal, recuerda verificar por otro canal.
 - No inventes datos que no estén en el mensaje.`;
 
-// Si el modelo configurado deja de existir, se prueba el siguiente.
-const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"];
+// Del más rápido al más grande. Si uno tarda demasiado o ya no existe, se prueba el siguiente.
+const FALLBACK_MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+  "gemini-flash-latest",
+];
+const PER_MODEL_MS = 8000;
+const TOTAL_MS = 20000;
 
 export function aiEnabled(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
-async function callModel(model: string, prompt: string, key: string): Promise<AiResult> {
+async function callModel(
+  model: string,
+  prompt: string,
+  key: string,
+  timeoutMs: number,
+  noThinking = true,
+): Promise<AiResult> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -40,8 +53,13 @@ async function callModel(model: string, prompt: string, key: string): Promise<Ai
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          // Margen amplio: los modelos que "piensan" gastan tokens antes de responder.
-          generationConfig: { temperature: 0.2, maxOutputTokens: 4096, responseMimeType: "application/json" },
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 4096,
+            responseMimeType: "application/json",
+            // Para dos frases no hace falta que el modelo "razone": responde mucho más rápido.
+            ...(noThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          },
         }),
       },
     );
@@ -82,11 +100,19 @@ export async function askAiDetailed(anonymizedText: string, signals: Signal[]): 
     signals.length ? signals.map((s) => `- ${s.detail}`).join("\n") : "- ninguna"
   }`;
   const models = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter(Boolean))] as string[];
+  const deadline = Date.now() + TOTAL_MS;
   let last: AiResult = { opinion: null, error: "sin modelos" };
   for (const model of models) {
-    last = await callModel(model, prompt, key);
-    // Solo cambiamos de modelo si este no existe; otros errores (cuota, llave) se repiten igual.
-    if (last.opinion || !/HTTP 404/.test(last.error ?? "")) break;
+    const left = deadline - Date.now();
+    if (left < 2000) break;
+    last = await callModel(model, prompt, key, Math.min(PER_MODEL_MS, left));
+    // Algunos modelos no aceptan apagar el razonamiento: se reintenta sin esa opción.
+    if (/HTTP 400/.test(last.error ?? "") && /thinking/i.test(last.error ?? "")) {
+      last = await callModel(model, prompt, key, Math.min(PER_MODEL_MS, deadline - Date.now()), false);
+    }
+    if (last.opinion) break;
+    // Cambiamos de modelo si no existe o tardó; otros errores (llave, cuota) se repetirían igual.
+    if (!/HTTP 404|tiempo agotado/.test(last.error ?? "")) break;
   }
   if (last.error) console.warn(`Gemini (${last.model ?? "-"}) falló:`, last.error);
   return last;
