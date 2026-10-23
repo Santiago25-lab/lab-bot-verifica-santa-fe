@@ -110,6 +110,11 @@ const kw: Record<KeywordCategory, string[]> = {
     "pago realizado",
     "te mande la plata",
     "mira el pantallazo",
+    "envio realizado",
+    "transferencia realizada",
+    "transaccion exitosa",
+    "pago exitoso",
+    "detalle del movimiento",
   ],
   entidad_publica: [
     "dian",
