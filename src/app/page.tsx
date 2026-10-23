@@ -3,23 +3,13 @@ import Link from "next/link";
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
 const waLink = WA ? `https://wa.me/${WA}?text=${encodeURIComponent("Hola")}` : null;
 
-const ejemplos = [
-  {
-    label: "«La DIAN te va a embargar»",
-    text: "DIAN: Su RUT presenta inconsistencias. Evite el embargo de su cuenta en 24 horas actualizando aquí: dian-pagos.com/rut",
-  },
-  {
-    label: "«Compártenos el código»",
-    text: "Hola, somos de Bancolombia. Te enviamos un código por una transacción que hiciste, compártenos el código para cancelarla.",
-  },
-  {
-    label: "«Ya te transferí»",
-    text: "Ya te transferí los $85.000 por Nequi, mira el comprobante. ¿Me despachas ya?",
-  },
-  {
-    label: "«Mamá, cambié de número»",
-    text: "Hola mamá, cambié de número, guárdalo. Necesito que me consignes 300 mil hoy mismo, luego te explico.",
-  },
+const casos = [
+  { icon: "🏛️", title: "Suplantan a la DIAN o al Gobierno", text: "Multas, embargos o «actualice su RUT» con links que no terminan en .gov.co." },
+  { icon: "🏦", title: "Se hacen pasar por tu banco", text: "«Tu cuenta fue bloqueada», links falsos o llamadas pidiendo el código del SMS." },
+  { icon: "💸", title: "Pagos falsos de Nequi o Daviplata", text: "Pantallazos de «envío exitoso» que nunca llegaron a tu cuenta." },
+  { icon: "👨‍👩‍👧", title: "«Mamá, cambié de número»", text: "Alguien finge ser un familiar o conocido y te pide plata con urgencia." },
+  { icon: "🎁", title: "Premios, bonos y préstamos", text: "Te «ganaste» algo o te «aprobaron» un crédito que nunca pediste." },
+  { icon: "🧾", title: "Recibos y proveedores", text: "Cobros falsos de luz, gas o agua, o un proveedor que «cambió de cuenta»." },
 ];
 
 const semaforo = [
@@ -97,24 +87,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Probar con un ejemplo, sin escribir nada */}
+      {/* 2. En qué casos ayuda */}
       <section className="mx-auto max-w-6xl px-4 py-10">
-        <h2 className="text-2xl font-bold">Pruébalo con un ejemplo</h2>
-        <p className="mt-1 text-muted">Toca uno y mira lo que respondería el bot.</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {ejemplos.map((e) => (
-            <Link
-              key={e.label}
-              href={`/verificar?m=${encodeURIComponent(e.text)}`}
-              className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 font-semibold shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-            >
-              <span>{e.label}</span>
-              <span className="text-brand-700" aria-hidden="true">
-                →
+        <h2 className="text-2xl font-bold">¿En qué casos te ayuda?</h2>
+        <p className="mt-1 text-muted">Estas son las trampas más comunes en Colombia. El bot las reconoce.</p>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {casos.map((c) => (
+            <li key={c.title} className="flex gap-4 rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+              <span className="text-3xl" aria-hidden="true">
+                {c.icon}
               </span>
-            </Link>
+              <div>
+                <p className="font-bold">{c.title}</p>
+                <p className="text-sm text-muted">{c.text}</p>
+              </div>
+            </li>
           ))}
-        </div>
+        </ul>
+        <Link
+          href="/verificar"
+          className="mt-6 flex min-h-14 items-center justify-center rounded-2xl bg-brand-700 px-6 py-3 text-lg font-semibold text-white hover:bg-brand-800 sm:inline-flex"
+        >
+          🔍 ¿Te llegó algo así? Revísalo aquí
+        </Link>
       </section>
 
       {/* 3. Cómo se usa y qué significa cada color */}

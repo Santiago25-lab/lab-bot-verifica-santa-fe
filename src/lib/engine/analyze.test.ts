@@ -162,3 +162,23 @@ describe("pedir códigos o claves", () => {
     });
   }
 });
+
+describe("direcciones con rasgos raros", () => {
+  it.each([
+    ["Entra a pagos-cliente-seguro.xyz", "dominio_raro"],
+    ["Revisa www.xn--bancolmbia-9db.com", "dominio_raro"],
+    ["Actualiza en nequi2024-validacion.online", "dominio_raro"],
+  ])("%s", async (text, id) => {
+    const a = await run(text);
+    expect(a.signals.map((s) => s.id)).toContain(id);
+    expect(a.verdict).not.toBe("sin_senales");
+  });
+
+  it.each(["Mira el menú en restaurante-elsol.com", "Tu factura en enel.com.co", "Visita tiendadonjuan.com"])(
+    "no marca direcciones normales: %s",
+    async (text) => {
+      const a = await run(text);
+      expect(a.signals.map((s) => s.id)).not.toContain("dominio_raro");
+    },
+  );
+});

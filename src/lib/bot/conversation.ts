@@ -1,5 +1,6 @@
 import { analyzeMessage, vocabFor } from "@/lib/engine/analyze";
 import { aiEnabled } from "@/lib/engine/ai";
+import { anonymize } from "@/lib/engine/anonymize";
 import { ocrImage } from "@/lib/engine/ocr";
 import { normalize } from "@/lib/text";
 import { correctTypos } from "@/lib/typos";
@@ -31,6 +32,8 @@ export interface BotState {
   simId?: string;
   lastSims?: string[];
   alert?: { entities: string[]; domains: string[] };
+  /** Último mensaje revisado, ya sin datos personales, por si la persona decide reportarlo. */
+  lastReport?: { text: string; verdict: Analysis["verdict"]; signals: string[]; domains: string[] };
 }
 
 export type BotInput =
@@ -55,6 +58,7 @@ const B = {
   menu: { id: "menu", title: "📋 Menú" },
   otroSim: { id: "menu_simulacro", title: "🎯 Otro simulacro" },
   otraVerif: { id: "menu_verificar", title: "🔍 Verificar otro" },
+  reportar: { id: "reportar", title: "🚩 Reportar" },
 };
 
 const MENU_BUTTONS = [B.verificar, B.simulacro, B.cai];
@@ -82,7 +86,7 @@ function welcome(): BotReply {
     text:
       "👋 Hola, soy *Verifica Santa Fe*.\n" +
       "Reenvíame un mensaje, un link o una captura de pantalla que te parezca raro y te digo si tiene señales de fraude.\n\n" +
-      "🔒 No guardo tus mensajes ni tu número: los analizo y los descarto." +
+      "🔒 No guardo tus mensajes ni tu número: los analizo y los descarto (solo si tú lo reportas con 🚩, guardo el mensaje sin tus datos)." +
       (SITE ? ` Aviso de privacidad: ${SITE}/privacidad` : ""),
   };
 }
@@ -119,6 +123,7 @@ const TIPS: Partial<Record<Signal["id"], string>> = {
   urgencia: "La prisa es la herramienta del estafador. Si te apuran, detente y confirma por otro canal.",
   comprobante: "El único comprobante que vale es el saldo en TU app. Revisa antes de entregar.",
   gancho: "Si suena demasiado bueno o urgente para ser verdad, casi siempre es una trampa.",
+  dominio_raro: "Las páginas oficiales tienen direcciones cortas y limpias: sin guiones de más, números raros ni terminaciones como .xyz o .online.",
 };
 
 export function formatAnalysis(a: Analysis): string {
@@ -194,16 +199,23 @@ async function verify(
   const replies: BotReply[] = [
     { text: (fromImage ? "📷 Leí tu captura.\n\n" : "") + formatAnalysis(a) },
   ];
+  // Se guarda solo en la conversación (no en la base) hasta que la persona decida reportarlo.
+  const lastReport = {
+    text: anonymize(text).slice(0, 1500),
+    verdict: a.verdict,
+    signals: a.signals.map((s) => s.id),
+    domains: a.suspiciousDomains.slice(0, 5),
+  };
   if (a.verdict === "sin_senales") {
-    replies.push({ text: "¿Algo más?", buttons: [B.otraVerif, B.simulacro, B.menu] });
-    return { replies, state: { ...state, step: "idle", alert: undefined } };
+    replies.push({
+      text: "¿Algo más? Si igual te parece raro, puedes reportarlo.",
+      buttons: [B.otraVerif, B.reportar, B.menu],
+    });
+    return { replies, state: { ...state, step: "idle", alert: undefined, lastReport } };
   }
   replies.push({
-    text: "¿Ya hiciste clic, pagaste o diste datos?",
-    buttons: [
-      { id: "triage_si", title: "Sí, ya actué" },
-      { id: "triage_no", title: "No, todavía no" },
-    ],
+    text: "¿Ya hiciste clic, pagaste o diste datos?\n🚩 Si quieres, reporta el mensaje para alertar a otros comerciantes.",
+    buttons: [TRIAGE_YES, TRIAGE_NO, B.reportar],
   });
   return {
     replies,
@@ -211,11 +223,15 @@ async function verify(
       ...state,
       step: "triage_ask",
       alert: { entities: a.entities.slice(0, 2), domains: a.suspiciousDomains.slice(0, 2) },
+      lastReport,
     },
   };
 }
 
 /* ---------- Triage ---------- */
+
+const TRIAGE_YES = { id: "triage_si", title: "Sí, ya actué" };
+const TRIAGE_NO = { id: "triage_no", title: "No, todavía no" };
 
 export const TRIAGE_CASES: Record<TriageCase, { title: string; steps: string[] }> = {
   pago: {
@@ -370,6 +386,7 @@ export async function handleMessage(
       } else if (/^que es (el |un )?(phishing|smishing|vishing|eso|fraude|estafa)$/.test(n)) buttonId = "que_es";
       else if (/^(como|donde) (denuncio|puedo denunciar|denunciar)|^quiero denunciar/.test(n)) buttonId = "denuncia";
       else if (n === "verificar") buttonId = "menu_verificar";
+      else if (/^reportar( mensaje| este mensaje)?$|^reportarlo$/.test(n)) buttonId = "reportar";
     }
   }
 
@@ -379,6 +396,35 @@ export async function handleMessage(
         return done({ replies: [menu()], state: { ...state, step: "idle" } });
       case "ayuda":
         return done({ replies: [help()], state: { ...state, step: "idle" } });
+      case "reportar": {
+        if (!state.lastReport) {
+          return done({
+            replies: [menu("Primero envíame el mensaje sospechoso; después podrás reportarlo con 🚩.")],
+            state,
+          });
+        }
+        await ctx.log({
+          type: "reporte",
+          verdict: state.lastReport.verdict,
+          data: {
+            texto: state.lastReport.text,
+            dominios: state.lastReport.domains,
+            senales: state.lastReport.signals,
+            estado: "nuevo",
+          },
+        });
+        const thanks =
+          "🚩 *¡Gracias por reportarlo!* Lo guardamos sin tus datos personales. El equipo lo revisará y, si es fraude, el bot alertará a otros comerciantes.";
+        const next: BotState = { ...state, lastReport: undefined };
+        return done({
+          replies: [
+            state.step === "triage_ask"
+              ? { text: `${thanks}\n\n¿Ya hiciste clic, pagaste o diste datos?`, buttons: [TRIAGE_YES, TRIAGE_NO] }
+              : menu(thanks),
+          ],
+          state: next,
+        });
+      }
       case "gracias":
         return done({
           replies: [

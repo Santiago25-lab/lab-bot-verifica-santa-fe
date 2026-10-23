@@ -27,6 +27,11 @@ export default function PrivacidadPage() {
           resultaron peligrosos) para evaluar el proyecto académico.
         </li>
         <li>
+          <strong>Mensajes reportados:</strong> solo si tú tocas «🚩 Reportar», guardamos el
+          mensaje para que el equipo lo revise y alerte a otros. Antes de guardarlo le quitamos
+          números, nombres y las rutas de los links.
+        </li>
+        <li>
           <strong>Revisión con IA:</strong> antes de enviar un texto a un servicio de IA quitamos
           números, nombres, correos y rutas de los links.
         </li>

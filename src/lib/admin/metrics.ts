@@ -89,6 +89,7 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
       aciertoSimulacros: pct(simsOk, sims.length),
       triage: triage.length,
       alertas: events.filter((e) => e.type === "alerta").length,
+      reportes: events.filter((e) => e.type === "reporte").length,
       intentosAula: attempts.length,
     },
     porVeredicto: count(verifs.map((e) => e.verdict ?? "sin_senales")),

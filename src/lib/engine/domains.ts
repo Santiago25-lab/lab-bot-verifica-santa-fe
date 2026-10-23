@@ -60,3 +60,53 @@ export function findImitation(
   }
   return undefined;
 }
+
+// Terminaciones baratas o gratuitas, muy usadas en páginas falsas.
+const CHEAP_TLDS = new Set([
+  "xyz", "top", "online", "site", "click", "live", "shop", "buzz", "icu", "vip", "info", "store",
+  "website", "space", "fun", "monster", "rest", "cfd", "sbs", "tk", "ml", "ga", "cf", "gq", "work",
+]);
+// Palabras que los estafadores ponen en la dirección para dar confianza.
+const BAIT_WORDS = [
+  "seguro", "segura", "seguridad", "verifica", "verificar", "verificacion", "actualiza", "actualizar",
+  "actualizacion", "pago", "pagos", "login", "soporte", "bloqueo", "desbloqueo", "desbloquear",
+  "clientes", "validar", "validacion", "premio", "premios", "bono", "bonos", "beneficio", "oficial",
+  "sucursal", "portal", "reembolso", "citacion", "multas",
+];
+
+/**
+ * Rasgos de una dirección desconocida que un sitio oficial casi nunca tiene.
+ * Devuelve las razones encontradas y cuánto suman (máx. 3).
+ */
+export function domainOddities(hostname: string, domain: string, label: string): { reasons: string[]; weight: number } {
+  const reasons: string[] = [];
+  let weight = 0;
+  if (hostname.split(".").some((p) => p.startsWith("xn--"))) {
+    reasons.push("usa letras disfrazadas que parecen normales (xn--)");
+    weight += 3;
+  }
+  const tld = domain.slice(label.length + 1);
+  if (CHEAP_TLDS.has(tld)) {
+    reasons.push(`termina en .${tld}, muy usado en páginas falsas`);
+    weight += 1;
+  }
+  if ((label.match(/-/g) ?? []).length >= 2) {
+    reasons.push("tiene muchos guiones");
+    weight += 1;
+  }
+  if (/[a-z]/.test(label) && /\d/.test(label)) {
+    reasons.push("mezcla números con el nombre");
+    weight += 1;
+  }
+  const tokens = hostname.split(/[^a-z0-9]+/);
+  const bait = BAIT_WORDS.filter((w) => tokens.includes(w) || label.includes(w));
+  if (bait.length) {
+    reasons.push(`usa palabras para dar confianza («${bait.slice(0, 2).join("», «")}»)`);
+    weight += 1;
+  }
+  if (label.length > 25) {
+    reasons.push("es demasiado larga");
+    weight += 1;
+  }
+  return { reasons, weight: Math.min(weight, 3) };
+}

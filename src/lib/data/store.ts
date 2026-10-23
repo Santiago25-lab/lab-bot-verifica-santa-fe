@@ -60,6 +60,8 @@ export interface Store {
   update<T extends ConfigTable>(table: T, id: string, row: Partial<TableRow[T]>): Promise<void>;
   remove(table: ConfigTable, id: string): Promise<void>;
   logEvent(e: EventRow): Promise<void>;
+  /** Cambia los datos de un evento (se usa para el estado de los reportes). */
+  updateEventData(id: string, data: Record<string, unknown>): Promise<void>;
   saveAttempt(a: AttemptRow): Promise<void>;
   listEvents(limit?: number): Promise<EventRow[]>;
   listAttempts(limit?: number): Promise<AttemptRow[]>;
@@ -108,6 +110,10 @@ function memoryStore(): Store {
     },
     async logEvent(e) {
       m.events.push({ ...e, id: crypto.randomUUID(), created_at: now() });
+    },
+    async updateEventData(id, data) {
+      const ev = m.events.find((e) => e.id === id);
+      if (ev) ev.data = data;
     },
     async saveAttempt(a) {
       m.attempts.push({ ...a, id: crypto.randomUUID(), created_at: now() });
@@ -178,6 +184,9 @@ function supabaseStore(client: SupabaseClient): Store {
     async logEvent(e) {
       const { error } = await client.from("events").insert(e);
       if (error) console.warn("No se pudo guardar el evento:", error.message);
+    },
+    async updateEventData(id, data) {
+      check((await client.from("events").update({ data }).eq("id", id)).error);
     },
     async saveAttempt(a) {
       check((await client.from("attempts").insert(a)).error);

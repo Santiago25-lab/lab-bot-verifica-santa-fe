@@ -19,6 +19,7 @@ export type SignalId =
   | "comprobante"
   | "pide_codigo"
   | "gancho"
+  | "dominio_raro"
   | "ia";
 
 export interface Signal {
@@ -120,7 +121,8 @@ export type EventType =
   | "verificacion"
   | "simulacro"
   | "triage"
-  | "alerta";
+  | "alerta"
+  | "reporte";
 
 export interface EventRow {
   id?: string;

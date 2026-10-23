@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { Crud, type Field } from "./Crud";
+import { LinkChecker } from "./LinkChecker";
+import { Reports } from "./Reports";
 import { MetricsView } from "./MetricsView";
 import { QuizEditor } from "./QuizEditor";
 
@@ -19,22 +21,27 @@ const CASES = [
   { value: "clic", label: "Abrió link" },
 ];
 
-const TABS = ["Indicadores", "Dominios", "Palabras clave", "Contactos", "Simulacros", "Aula virtual"] as const;
+const TABS = [
+  "Indicadores",
+  "Reportes",
+  "Links oficiales",
+  "Páginas falsas",
+  "Palabras clave",
+  "Contactos",
+  "Simulacros",
+  "Aula virtual",
+] as const;
 type Tab = (typeof TABS)[number];
 
-const domainFields: Field[] = [
-  { key: "domain", label: "Dominio", type: "text", placeholder: "ej. dian.gov.co", help: "Sin https:// ni www." },
+const officialFields: Field[] = [
+  { key: "domain", label: "Link oficial", type: "text", placeholder: "ej. dian.gov.co", help: "Puedes pegar el link completo: se guarda solo el dominio." },
   { key: "entity", label: "Entidad", type: "text", placeholder: "ej. DIAN" },
-  {
-    key: "list",
-    label: "Lista",
-    type: "select",
-    options: [
-      { value: "blanca", label: "Blanca (oficial)" },
-      { value: "negra", label: "Negra (fraude reportado)" },
-    ],
-  },
   { key: "priority", label: "Prioritaria (⭐)", type: "checkbox" },
+];
+
+const fakeFields: Field[] = [
+  { key: "domain", label: "Página falsa", type: "text", placeholder: "ej. dian-pagos.com", help: "Puedes pegar el link completo: se guarda solo el dominio." },
+  { key: "entity", label: "Nota", type: "text", placeholder: "ej. Imita a la DIAN, reportado el 20/10" },
 ];
 
 const keywordFields: Field[] = [
@@ -83,6 +90,20 @@ export function AdminApp() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("Indicadores");
+  const [domainsVersion, setDomainsVersion] = useState(0);
+
+  // Agrega un dominio a las páginas falsas desde Reportes o desde "Probar un link".
+  async function blacklist(domain: string) {
+    try {
+      await api("/api/admin/domains", {
+        method: "POST",
+        body: JSON.stringify({ domain, entity: "Reportado por usuarios", list: "negra" }),
+      });
+      setDomainsVersion((v) => v + 1);
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  }
 
   const refresh = () => api<Session>("/api/admin/session").then(setSession).catch(() => setSession({ enabled: false, authed: false }));
 
@@ -190,15 +211,36 @@ export function AdminApp() {
       </div>
 
       {tab === "Indicadores" && <MetricsView />}
-      {tab === "Dominios" && (
-        <Crud
-          table="domains"
-          title="Lista blanca y lista negra"
-          intro="Blanca: dominios oficiales. Negra: dominios ya reportados como fraude (veredicto peligroso inmediato)."
-          fields={domainFields}
-          columns={["domain", "entity", "list", "priority"]}
-          defaults={{ domain: "", entity: "", list: "blanca", priority: false }}
-        />
+      {tab === "Reportes" && <Reports onBlacklist={blacklist} />}
+      {tab === "Links oficiales" && (
+        <div className="space-y-6">
+          <LinkChecker />
+          <Crud
+            table="domains"
+            title="Links oficiales"
+            intro="Las direcciones reales de bancos, billeteras, servicios y entidades. El bot detecta las páginas que se parecen a estas sin serlo."
+            fields={officialFields}
+            columns={["domain", "entity", "priority"]}
+            defaults={{ domain: "", entity: "", priority: false }}
+            fixed={{ list: "blanca" }}
+            reloadKey={domainsVersion}
+          />
+        </div>
+      )}
+      {tab === "Páginas falsas" && (
+        <div className="space-y-6">
+          <LinkChecker onBlacklist={blacklist} />
+          <Crud
+            table="domains"
+            title="Páginas falsas"
+            intro="Dominios ya confirmados como fraude: el bot los marca 🔴 Peligroso de inmediato."
+            fields={fakeFields}
+            columns={["domain", "entity"]}
+            defaults={{ domain: "", entity: "" }}
+            fixed={{ list: "negra", priority: false }}
+            reloadKey={domainsVersion}
+          />
+        </div>
       )}
       {tab === "Palabras clave" && (
         <Crud

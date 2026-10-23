@@ -56,3 +56,29 @@ describe("conversación", () => {
     expect(replies[0].text).toContain("165");
   });
 });
+
+describe("reportar mensajes", () => {
+  it("después de un veredicto ofrece reportar y guarda el mensaje sin datos personales", async () => {
+    const logged: { type: string; data?: Record<string, unknown> }[] = [];
+    const c = { ...ctx, log: async (e: { type: string; data?: Record<string, unknown> }) => void logged.push(e) };
+    const first = await handleMessage(
+      { kind: "text", text: "Hola Carlos Pérez, compártenos el código. Llámanos al 3105551234 o entra a https://banco-seguro.xyz/u/99" },
+      { welcomed: true },
+      c,
+    );
+    expect(first.replies.at(-1)?.buttons?.map((b) => b.id)).toContain("reportar");
+    const second = await handleMessage({ kind: "button", id: "reportar" }, first.state, c);
+    expect(second.replies[0].text).toContain("Gracias por reportarlo");
+    const report = logged.find((e) => e.type === "reporte");
+    expect(report).toBeDefined();
+    const texto = String(report?.data?.texto);
+    expect(texto).not.toMatch(/Carlos|3105551234|\/u\/99/);
+    expect(texto).toContain("banco-seguro.xyz");
+    expect(second.state.lastReport).toBeUndefined();
+  });
+
+  it("si no hay mensaje revisado, pide enviarlo primero", async () => {
+    const { replies } = await say("reportar");
+    expect(replies[0].text).toContain("Primero envíame");
+  });
+});

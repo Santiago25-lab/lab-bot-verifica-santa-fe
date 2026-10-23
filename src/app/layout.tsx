@@ -43,6 +43,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               📞 165
             </a>
             <div className="hidden items-center gap-2 whitespace-nowrap text-sm font-medium sm:flex">
+              <Link href="/" className="rounded-lg px-3 py-2 hover:bg-brand-50">
+                🏠 Inicio
+              </Link>
               <Link href="/verificar" className="rounded-lg px-3 py-2 hover:bg-brand-50">
                 Revisar mensaje
               </Link>

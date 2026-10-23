@@ -4,7 +4,7 @@ import { buildVocab, correctTypos, type Vocab } from "@/lib/typos";
 import type { Analysis, AppConfig, DomainEntry, Signal, Verdict } from "@/lib/types";
 import { askAi, looksLikeManipulation } from "./ai";
 import { anonymize } from "./anonymize";
-import { findImitation, findListed, isGov, isShortener, labelOf } from "./domains";
+import { domainOddities, findImitation, findListed, isGov, isShortener, labelOf } from "./domains";
 import { expandUrl } from "./expand";
 import { extractEmails, extractUrls, parseUrl, type FoundUrl } from "./extract";
 import { checkSafeBrowsing } from "./safeBrowsing";
@@ -179,6 +179,15 @@ export async function analyzeMessage(
     if (u.isIp) {
       add({ id: "ip", detail: "El link usa números (IP) en vez de un nombre de página.", weight: 2 });
       continue;
+    }
+    // Rasgos raros de la dirección (aunque no imite a nadie conocido).
+    const odd = domainOddities(u.hostname, u.domain, u.label);
+    if (odd.reasons.length) {
+      add({
+        id: "dominio_raro",
+        detail: `La dirección ${u.domain} ${odd.reasons.join(", ")}.`,
+        weight: odd.weight,
+      });
     }
     const imitated = findImitation(u.hostname, u.label, whitelist);
     if (imitated) {

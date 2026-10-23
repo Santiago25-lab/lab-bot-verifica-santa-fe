@@ -21,6 +21,10 @@ interface Props {
   fields: Field[];
   columns: string[];
   defaults: Record<string, unknown>;
+  /** Valores fijos: solo se muestran las filas con esos valores y se guardan siempre así. */
+  fixed?: Record<string, unknown>;
+  /** Para recargar la tabla cuando otra parte del panel la cambia. */
+  reloadKey?: number;
 }
 
 function show(v: unknown, field?: Field): string {
@@ -30,7 +34,7 @@ function show(v: unknown, field?: Field): string {
   return String(v ?? "");
 }
 
-export function Crud({ table, title, intro, fields, columns, defaults }: Props) {
+export function Crud({ table, title, intro, fields, columns, defaults, fixed, reloadKey }: Props) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [query, setQuery] = useState("");
@@ -45,13 +49,16 @@ export function Crud({ table, title, intro, fields, columns, defaults }: Props) 
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table]);
+  }, [table, reloadKey]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!rows || !q) return rows ?? [];
-    return rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
-  }, [rows, query]);
+    const scoped = (rows ?? []).filter((r) =>
+      Object.entries(fixed ?? {}).every(([k, v]) => r[k] === v),
+    );
+    if (!q) return scoped;
+    return scoped.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+  }, [rows, query, fixed]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +69,7 @@ export function Crud({ table, title, intro, fields, columns, defaults }: Props) 
       const id = editing.id as string | undefined;
       await api(id ? `/api/admin/${table}/${encodeURIComponent(id)}` : `/api/admin/${table}`, {
         method: id ? "PUT" : "POST",
-        body: JSON.stringify(editing),
+        body: JSON.stringify({ ...editing, ...fixed }),
       });
       setEditing(null);
       await load();

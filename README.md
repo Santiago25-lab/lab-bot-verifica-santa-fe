@@ -33,6 +33,11 @@ ganchos típicos (premios, "cambié de número", empleos y préstamos falsos, QR
 veredicto trae un consejo 💡 para aprender la señal; y el bot entiende "gracias", "¿qué hago?",
 "¿qué es phishing?" y "cómo denuncio".
 
+**Direcciones desconocidas:** además de comparar con los links oficiales y las páginas falsas, se
+revisan rasgos que un sitio oficial casi nunca tiene: letras disfrazadas (xn--), terminaciones
+baratas (.xyz, .online…), muchos guiones, números mezclados con el nombre, palabras para dar
+confianza ("seguro", "pago", "verifica") y direcciones demasiado largas.
+
 **Faltas de ortografía:** antes de aplicar las reglas, `src/lib/typos.ts` corrige "a oído" cada
 palabra hacia un vocabulario de palabras importantes (v/b, s/z/c, ll/y, h muda, c/k/qu, g/j) y
 tolera letras de más o de menos y teclas vecinas. Así "conpartenos el codijo", "grasias" o
@@ -157,7 +162,10 @@ El código no cambia entre las dos fases.
 
 - **Indicadores**: personas, verificaciones, resultado, canal, señales, triage, puntajes del
   aula y encuesta. Exporta CSV de eventos y respuestas.
-- **Dominios**: lista blanca (oficiales) y lista negra (fraudes reportados).
+- **Reportes**: mensajes que los usuarios reportaron con 🚩 (sin datos personales), dominios más
+  reportados y paso a "Páginas falsas" con un clic.
+- **Links oficiales** y **Páginas falsas**: listas separadas, con la caja "Probar un link" que
+  muestra cómo clasifica el sistema cualquier dirección.
 - **Palabras clave**: urgencia, pedidos de datos o pagos, comprobantes, entidades públicas.
 - **Contactos**: a quién derivar según lo que pasó.
 - **Simulacros**: mensajes que el bot envía cuando escriben SIMULACRO.

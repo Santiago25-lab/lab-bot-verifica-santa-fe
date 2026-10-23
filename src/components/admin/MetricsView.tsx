@@ -19,6 +19,7 @@ const SIGNAL_LABEL: Record<string, string> = {
   comprobante: "Comprobante de pago",
   pide_codigo: "Pide compartir un código o clave",
   gancho: "Gancho típico (premio, familiar, empleo...)",
+  dominio_raro: "Dirección con rasgos raros",
   ia: "Detectado por IA",
 };
 
@@ -120,7 +121,7 @@ export function MetricsView() {
         <Tile label="Personas (IDs anónimos)" value={t.personas} />
         <Tile label="Mensajes verificados" value={t.verificaciones} />
         <Tile label="Aciertos en simulacros" value={`${t.aciertoSimulacros}%`} hint={`${t.simulacros} simulacros respondidos`} />
-        <Tile label="Derivaciones y alertas" value={t.triage + t.alertas} hint={`${t.triage} triage · ${t.alertas} alertas vecinales`} />
+        <Tile label="Derivaciones y alertas" value={t.triage + t.alertas} hint={`${t.triage} triage · ${t.alertas} alertas · ${t.reportes} reportes`} />
       </div>
 
       <Card title="Antes y después: capacidad para reconocer señales">
