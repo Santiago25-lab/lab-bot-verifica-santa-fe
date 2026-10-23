@@ -13,6 +13,9 @@ import type {
  * Los dominios se deben confirmar en la página oficial de cada entidad antes del piloto.
  */
 
+/** Súbelo al agregar datos iniciales: la app los añade a una base ya cargada. */
+export const SEED_VERSION = "2";
+
 const white: [string, string, boolean][] = [
   ["dian.gov.co", "DIAN", true],
   ["nequi.com.co", "Nequi", true],
@@ -98,6 +101,15 @@ const kw: Record<KeywordCategory, string[]> = {
     "datos bancarios",
     "numero de tarjeta",
     "nueva cuenta",
+    "el codigo que te llego",
+    "codigo que te llego",
+    "me regalas el codigo",
+    "dame el codigo",
+    "enviame el codigo",
+    "codigo de seguridad",
+    "clave dinamica",
+    "soy del banco",
+    "te llamamos del banco",
   ],
   comprobante: [
     "comprobante",

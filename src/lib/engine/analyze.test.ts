@@ -118,3 +118,10 @@ describe("imitaciones con errores de escritura", () => {
     }
   });
 });
+
+describe("pedidos de código", () => {
+  it("marca como sospechoso pedir el código que llegó", async () => {
+    const a = await run("Hola, soy del banco, te llamamos para confirmar un movimiento, me regalas el código que te llegó?");
+    expect(a.verdict).not.toBe("sin_senales");
+  });
+});

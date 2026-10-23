@@ -5,28 +5,31 @@ export interface AiOpinion {
   explicacion: string;
 }
 
+export interface AiResult {
+  opinion: AiOpinion | null;
+  model?: string;
+  error?: string;
+}
+
 const SYSTEM = `Eres un asistente que ayuda a comerciantes de Bogotá (Colombia) a detectar phishing.
 Recibes un mensaje ANONIMIZADO y las señales que encontró un motor de reglas.
 Responde SOLO un JSON: {"nivel":"alto"|"medio"|"bajo","explicacion":"..."}.
 - "nivel" es tu opinión sobre el riesgo de fraude.
 - "explicacion": máximo 2 frases cortas, en español sencillo, tuteando, sin tecnicismos, sin emojis.
+- Pedir códigos, claves o datos por mensaje o llamada es riesgo alto.
 - Nunca digas que un mensaje es "seguro". Si parece normal, recuerda verificar por otro canal.
 - No inventes datos que no estén en el mensaje.`;
+
+// Si el modelo configurado deja de existir, se prueba el siguiente.
+const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"];
 
 export function aiEnabled(): boolean {
   return Boolean(process.env.GEMINI_API_KEY);
 }
 
-/** Pide una segunda opinión y una explicación sencilla a Gemini. Devuelve null si falla. */
-export async function askAi(anonymizedText: string, signals: Signal[]): Promise<AiOpinion | null> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return null;
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const prompt = `Mensaje:\n"""${anonymizedText.slice(0, 3000)}"""\n\nSeñales de las reglas:\n${
-    signals.length ? signals.map((s) => `- ${s.detail}`).join("\n") : "- ninguna"
-  }`;
+async function callModel(model: string, prompt: string, key: string): Promise<AiResult> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 9000);
+  const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -37,32 +40,58 @@ export async function askAi(anonymizedText: string, signals: Signal[]): Promise<
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 1024,
-            responseMimeType: "application/json",
-          },
+          // Margen amplio: los modelos que "piensan" gastan tokens antes de responder.
+          generationConfig: { temperature: 0.2, maxOutputTokens: 4096, responseMimeType: "application/json" },
         }),
       },
     );
     if (!res.ok) {
-      console.warn("Gemini respondió", res.status);
-      return null;
+      const detail = ((await res.text()) || "").slice(0, 300);
+      return { opinion: null, model, error: `HTTP ${res.status}: ${detail}` };
     }
     const data = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
+      candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[];
     };
-    const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    const parsed = JSON.parse(raw.replace(/^```(json)?|```$/g, "").trim()) as Partial<AiOpinion>;
-    if (!parsed.nivel || !["alto", "medio", "bajo"].includes(parsed.nivel)) return null;
+    const cand = data.candidates?.[0];
+    const raw = (cand?.content?.parts ?? [])
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? "")
+      .join("");
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return { opinion: null, model, error: `respuesta sin JSON (fin: ${cand?.finishReason ?? "?"})` };
+    const parsed = JSON.parse(match[0]) as Partial<AiOpinion>;
+    if (!parsed.nivel || !["alto", "medio", "bajo"].includes(parsed.nivel)) {
+      return { opinion: null, model, error: `nivel inválido: ${String(parsed.nivel)}` };
+    }
     return {
-      nivel: parsed.nivel,
-      explicacion: String(parsed.explicacion ?? "").slice(0, 400),
+      model,
+      opinion: { nivel: parsed.nivel, explicacion: String(parsed.explicacion ?? "").slice(0, 400) },
     };
   } catch (err) {
-    console.warn("Gemini no disponible:", (err as Error).message);
-    return null;
+    return { opinion: null, model, error: (err as Error).name === "AbortError" ? "tiempo agotado" : (err as Error).message };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Pide una segunda opinión y una explicación sencilla a Gemini, con el motivo si falla. */
+export async function askAiDetailed(anonymizedText: string, signals: Signal[]): Promise<AiResult> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { opinion: null, error: "falta GEMINI_API_KEY" };
+  const prompt = `Mensaje:\n"""${anonymizedText.slice(0, 3000)}"""\n\nSeñales de las reglas:\n${
+    signals.length ? signals.map((s) => `- ${s.detail}`).join("\n") : "- ninguna"
+  }`;
+  const models = [...new Set([process.env.GEMINI_MODEL, ...FALLBACK_MODELS].filter(Boolean))] as string[];
+  let last: AiResult = { opinion: null, error: "sin modelos" };
+  for (const model of models) {
+    last = await callModel(model, prompt, key);
+    // Solo cambiamos de modelo si este no existe; otros errores (cuota, llave) se repiten igual.
+    if (last.opinion || !/HTTP 404/.test(last.error ?? "")) break;
+  }
+  if (last.error) console.warn(`Gemini (${last.model ?? "-"}) falló:`, last.error);
+  return last;
+}
+
+export async function askAi(anonymizedText: string, signals: Signal[]): Promise<AiOpinion | null> {
+  return (await askAiDetailed(anonymizedText, signals)).opinion;
 }

@@ -6,6 +6,7 @@ import {
   defaultKeywords,
   defaultQuizzes,
   defaultSimulacros,
+  SEED_VERSION,
 } from "@/lib/data/defaults";
 import type {
   AppConfig,
@@ -130,17 +131,26 @@ function memoryStore(): Store {
 
 function supabaseStore(client: SupabaseClient): Store {
   let seeded: Promise<void> | null = null;
+  // Cada vez que cambian los datos iniciales sube SEED_VERSION: se agregan los registros
+  // nuevos sin tocar los que el equipo ya editó.
   const ensureSeeded = () =>
     (seeded ??= (async () => {
-      const { data } = await client.from("app_meta").select("value").eq("key", "seeded").maybeSingle();
-      if (data) return;
+      const { data } = await client
+        .from("app_meta")
+        .select("value")
+        .eq("key", "seed_version")
+        .maybeSingle();
+      if (data?.value === SEED_VERSION) return;
       for (const table of CONFIG_TABLES) {
-        const { error } = await client
-          .from(table)
-          .upsert(DEFAULTS[table] as never[], { onConflict: "id", ignoreDuplicates: true });
-        if (error) throw new Error(`No se pudo cargar ${table}: ${error.message}`);
+        const { data: rows, error } = await client.from(table).select("id");
+        if (error) throw new Error(`No se pudo leer ${table}: ${error.message}`);
+        const existing = new Set((rows ?? []).map((r: { id: string }) => r.id));
+        for (const row of DEFAULTS[table].filter((r) => !existing.has(r.id))) {
+          // Un registro que choca con uno creado a mano (mismo dominio) simplemente se omite.
+          await client.from(table).insert(row as never);
+        }
       }
-      await client.from("app_meta").upsert({ key: "seeded", value: new Date().toISOString() });
+      await client.from("app_meta").upsert({ key: "seed_version", value: SEED_VERSION });
     })().catch((err) => {
       seeded = null;
       throw err;
