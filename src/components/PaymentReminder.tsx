@@ -37,13 +37,13 @@ export function PaymentReminder() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="aviso-pago-titulo"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl border-4 border-red-800 bg-red-600 p-6 text-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <p id="aviso-pago-titulo" className="text-xl font-bold">
-          👋 Hola, te recordamos que tienes pendiente el 50% del pago
+          👋 Hola, te recordamos que tienes pendiente el 50% del pago por tu proyecto listo
         </p>
-        <p className="mt-3 text-muted">
+        <p className="mt-3 text-red-50">
           Para que esta ventana ya no salga, recuerda hacer tu pago. Al hacer el pago, esta ventana no
           volverá a aparecer.
         </p>
@@ -51,7 +51,7 @@ export function PaymentReminder() {
           ref={closeRef}
           type="button"
           onClick={() => setOpen(false)}
-          className="mt-5 w-full rounded-lg bg-brand-700 px-4 py-3 font-semibold text-white hover:bg-brand-800"
+          className="mt-5 w-full rounded-lg bg-white px-4 py-3 font-semibold text-red-700 hover:bg-red-50"
         >
           Entendido
         </button>
