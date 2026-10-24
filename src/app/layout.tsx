@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
+import { PaymentReminder } from "@/components/PaymentReminder";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -80,6 +81,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Lee la ruta actual: va en Suspense para no frenar el resto de la página. */}
         <Suspense fallback={null}>
           <BottomNav />
+        </Suspense>
+        <Suspense fallback={null}>
+          <PaymentReminder />
         </Suspense>
       </body>
     </html>
