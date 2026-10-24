@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ChatDemo } from "@/components/ChatDemo";
+import { PoliceMascot } from "@/components/PoliceMascot";
 
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
 const waLink = WA ? `https://wa.me/${WA}?text=${encodeURIComponent("Hola")}` : null;
@@ -93,7 +95,10 @@ export default function Home() {
               )}
             </div>
           </div>
-          <ChatDemo />
+          <div className="space-y-4">
+            <PoliceMascot />
+            <ChatDemo />
+          </div>
         </div>
       </section>
 
@@ -241,34 +246,5 @@ function ActionCard({
         →
       </span>
     </Link>
-  );
-}
-
-/** Conversación de ejemplo que aparece mensaje por mensaje (sin animación si el usuario la desactiva). */
-function ChatDemo() {
-  return (
-    <div className="mx-auto hidden w-full max-w-sm rounded-[2rem] border border-black/10 bg-white p-3 shadow-xl md:block" aria-hidden="true">
-      <div className="flex items-center gap-2 rounded-t-[1.5rem] bg-brand-800 px-4 py-3 text-white">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">🛡️</span>
-        <div>
-          <p className="text-sm font-semibold">Verifica Santa Fe</p>
-          <p className="text-xs text-brand-100">en línea</p>
-        </div>
-      </div>
-      <div className="space-y-3 bg-[#efeae2] p-4 text-sm">
-        <div className="demo-msg ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#d9fdd3] p-3 shadow-sm [animation-delay:0.2s]">
-          Hola, somos de Bancolombia. Compártenos el código que te llegó para cancelar la compra.
-        </div>
-        <div className="demo-msg max-w-[90%] rounded-xl rounded-tl-sm bg-white p-3 shadow-sm [animation-delay:1.4s]">
-          <p className="font-bold">🔴 PELIGROSO</p>
-          <p className="mt-1">• Te pide compartir un código. Ningún banco te lo pide nunca.</p>
-          <p className="mt-2">💡 Los códigos por SMS son la llave de tu cuenta: no se comparten.</p>
-        </div>
-        <div className="demo-msg flex gap-2 [animation-delay:2.4s]">
-          <span className="rounded-full border border-brand-600 bg-white px-3 py-1 text-brand-800">Sí, ya actué</span>
-          <span className="rounded-full border border-brand-600 bg-white px-3 py-1 text-brand-800">No, todavía no</span>
-        </div>
-      </div>
-    </div>
   );
 }

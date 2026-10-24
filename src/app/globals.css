@@ -64,3 +64,72 @@ html {
     animation: none;
   }
 }
+
+/* Conversación de ejemplo: puntos de "escribiendo…" y cursor. */
+.typing-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: #8a8a8a;
+  animation: typing-dot 1s infinite ease-in-out;
+}
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: var(--color-brand-700);
+  animation: caret 0.9s steps(1) infinite;
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
+
+/* Agente animado del inicio. */
+.mascot-body {
+  animation: mascot-bob 2.4s ease-in-out infinite;
+}
+.mascot-arm {
+  transform-box: view-box;
+  transform-origin: 154px 166px;
+  animation: mascot-arm 2.4s ease-in-out infinite;
+}
+.mascot-thumb {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-thumb 2.4s ease-in-out infinite;
+}
+.mascot-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-blink 4s infinite;
+}
+.mascot-tip {
+  animation: demo-in 0.4s ease-out both;
+}
+@keyframes mascot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes mascot-arm {
+  0%, 100% { transform: rotate(4deg); }
+  40%, 60% { transform: rotate(-8deg); }
+}
+@keyframes mascot-thumb {
+  0%, 35%, 65%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+@keyframes mascot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot, .typing-caret, .mascot-body, .mascot-arm, .mascot-thumb, .mascot-eyes, .mascot-tip {
+    animation: none;
+  }
+}
