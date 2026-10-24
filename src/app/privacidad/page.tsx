@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Aviso de privacidad" };
 
+const responsable = {
+  nombre: process.env.NEXT_PUBLIC_RESPONSABLE_NOMBRE,
+  correo: process.env.NEXT_PUBLIC_RESPONSABLE_CORREO,
+  ciudad: process.env.NEXT_PUBLIC_RESPONSABLE_CIUDAD || "Bogotá D.C.",
+};
+
 export default function PrivacidadPage() {
   return (
     <article className="mx-auto max-w-3xl space-y-4 px-4 py-10 leading-relaxed">
@@ -44,11 +50,39 @@ export default function PrivacidadPage() {
         denuncia ante las autoridades.
       </p>
 
+      {responsable.nombre && (
+        <>
+          <h2 className="pt-2 text-xl font-semibold">Responsable del tratamiento</h2>
+          <p>
+            {responsable.nombre} · {responsable.ciudad}, Colombia
+            {responsable.correo && (
+              <>
+                {" · "}
+                <a href={`mailto:${responsable.correo}`} className="text-brand-700 underline">
+                  {responsable.correo}
+                </a>
+              </>
+            )}
+          </p>
+        </>
+      )}
+
       <h2 className="pt-2 text-xl font-semibold">Tus derechos</h2>
       <p>
         Puedes conocer, actualizar, rectificar y pedir la supresión de tus datos. Como no
         guardamos datos que te identifiquen, basta con dejar de usar el servicio o borrar los datos
-        de tu navegador. Para consultas, escribe al equipo responsable del proyecto.
+        de tu navegador. Para consultas, escribe
+        {responsable.correo ? (
+          <>
+            {" a "}
+            <a href={`mailto:${responsable.correo}`} className="text-brand-700 underline">
+              {responsable.correo}
+            </a>
+            .
+          </>
+        ) : (
+          " al equipo responsable del proyecto."
+        )}
       </p>
     </article>
   );
