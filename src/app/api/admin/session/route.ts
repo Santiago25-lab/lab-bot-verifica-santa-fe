@@ -9,6 +9,7 @@ import {
 import { getStore } from "@/lib/data/store";
 import { aiEnabled } from "@/lib/engine/ai";
 import { rateLimited } from "@/lib/rateLimit";
+import { telegramConfigured } from "@/lib/telegram";
 import { whatsappConfigured } from "@/lib/whatsapp";
 
 export async function GET() {
@@ -21,6 +22,7 @@ export async function GET() {
       ? {
           baseDeDatos: getStore().kind,
           whatsapp: whatsappConfigured(),
+          telegram: telegramConfigured(),
           ia: aiEnabled(),
           safeBrowsing: Boolean(process.env.SAFE_BROWSING_API_KEY),
           firmaWebhook: Boolean(process.env.WHATSAPP_APP_SECRET),

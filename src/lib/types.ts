@@ -1,6 +1,6 @@
 export type Verdict = "peligroso" | "sospechoso" | "sin_senales";
 
-export type Channel = "whatsapp" | "web" | "aula";
+export type Channel = "whatsapp" | "telegram" | "web" | "aula";
 
 export type TriageCase = "pago" | "datos" | "extorsion" | "clic";
 

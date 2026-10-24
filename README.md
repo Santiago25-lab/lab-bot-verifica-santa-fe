@@ -8,6 +8,7 @@ Un mismo motor de análisis atiende:
 | Parte | Ruta | Qué hace |
 | --- | --- | --- |
 | Bot de WhatsApp | `/api/whatsapp` | Recibe mensajes, links y capturas reenviados y responde con semáforo, simulacros y triage |
+| Bot de Telegram | `/api/telegram` | El mismo bot en Telegram (botones, capturas y comandos /verificar, /simulacro, /ayuda) |
 | Inicio | `/` | Tres acciones grandes (revisar, practicar, ya caí), ejemplos con un toque y el semáforo explicado |
 | Bot web | `/verificar` | El mismo bot dentro de la página (`/verificar?m=texto` lo envía solo) |
 | Ayuda urgente | `/ayuda` | Botones para llamar al 165 y al 123, pasos por caso y alerta vecinal para copiar |
@@ -58,7 +59,7 @@ CAI Virtual, 123) con una alerta lista para reenviar al frente de seguridad de l
 
 - El texto, los links y las imágenes se analizan en memoria y se descartan.
 - El número de WhatsApp se convierte en un ID anónimo irreversible (`WA-…`, HMAC-SHA256 con
-  `ANON_ID_SECRET`). En la web el navegador recibe un ID aleatorio (`WEB-…`) en una cookie.
+  `ANON_ID_SECRET`); el usuario de Telegram, en `TG-…`. En la web el navegador recibe un ID aleatorio (`WEB-…`) en una cookie.
 - La base de datos solo guarda IDs anónimos, el tipo de evento, el veredicto y las señales.
 
 ## Tecnología
@@ -122,7 +123,19 @@ contactos, los simulacros y las pruebas del aula.
 
 Sin estas llaves el bot funciona igual, solo con reglas.
 
-### 4. WhatsApp
+### 4. Telegram (gratis, sin verificación de negocio)
+
+1. En Telegram, abre **@BotFather** → `/newbot` → nombre `Verifica Santa Fe` → usuario terminado
+   en `bot` (ej. `VerificaSantaFeBot`). Te da un token.
+2. En Vercel agrega `TELEGRAM_BOT_TOKEN` (el token) y `NEXT_PUBLIC_TELEGRAM_BOT` (el usuario sin
+   "@") y vuelve a desplegar.
+3. Entra a `/admin` y toca **Conectar Telegram**. Listo: escríbele `/start` al bot.
+
+La página de inicio y el afiche muestran el botón y el QR de Telegram automáticamente.
+Si la base de datos se creó antes de agregar Telegram, vuelve a correr `supabase/schema.sql`
+(es seguro: no borra datos) para que se guarden las métricas de este canal.
+
+### 5. WhatsApp
 
 **Fase 1 – número de prueba (ya puedes hacerla):**
 

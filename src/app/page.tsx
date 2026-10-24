@@ -2,6 +2,8 @@ import Link from "next/link";
 
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
 const waLink = WA ? `https://wa.me/${WA}?text=${encodeURIComponent("Hola")}` : null;
+const TG = (process.env.NEXT_PUBLIC_TELEGRAM_BOT || "").replace(/^@/, "");
+const tgLink = TG ? `https://t.me/${TG}` : null;
 
 const casos = [
   { icon: "🏛️", title: "Suplantan a la DIAN o al Gobierno", text: "Multas, embargos o «actualice su RUT» con links que no terminan en .gov.co." },
@@ -79,6 +81,14 @@ export default function Home() {
                   className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-[#25d366] bg-white px-5 py-3 text-lg font-semibold text-[#128c4a] hover:bg-green-50"
                 >
                   <span aria-hidden="true">💬</span> Usar por WhatsApp
+                </a>
+              )}
+              {tgLink && (
+                <a
+                  href={tgLink}
+                  className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-[#229ed9] bg-white px-5 py-3 text-lg font-semibold text-[#1a6fa0] hover:bg-sky-50"
+                >
+                  <span aria-hidden="true">✈️</span> Usar por Telegram
                 </a>
               )}
             </div>

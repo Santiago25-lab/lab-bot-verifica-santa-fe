@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/chat": OCR_FILES,
     "/api/whatsapp": OCR_FILES,
+    "/api/telegram": OCR_FILES,
     "/api/admin/ocr": OCR_FILES,
   },
   turbopack: {

@@ -105,7 +105,7 @@ export function MetricsView() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-bold">Indicadores</h2>
-          <p className="text-sm text-muted">Datos anónimos y agregados de WhatsApp, web y aula.</p>
+          <p className="text-sm text-muted">Datos anónimos y agregados de WhatsApp, Telegram, web y aula.</p>
         </div>
         <div className="flex gap-2 text-sm">
           <button type="button" onClick={() => download("eventos")} className="rounded-lg border border-black/10 bg-white px-3 py-2 hover:bg-surface">
@@ -204,6 +204,7 @@ export function MetricsView() {
           <Bars
             rows={[
               { label: "WhatsApp", n: m.porCanal.whatsapp ?? 0 },
+              { label: "Telegram", n: m.porCanal.telegram ?? 0 },
               { label: "Web", n: m.porCanal.web ?? 0 },
             ]}
           />

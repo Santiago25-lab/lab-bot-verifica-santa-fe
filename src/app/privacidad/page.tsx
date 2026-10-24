@@ -21,8 +21,8 @@ export default function PrivacidadPage() {
           guardamos su contenido.
         </li>
         <li>
-          <strong>Número de WhatsApp:</strong> se convierte en un código anónimo e irreversible. El
-          número no se guarda.
+          <strong>Número de WhatsApp o usuario de Telegram:</strong> se convierte en un código
+          anónimo e irreversible. El número o usuario no se guarda.
         </li>
         <li>
           <strong>Web y aula virtual:</strong> no pedimos nombre, correo ni cédula. Tu navegador

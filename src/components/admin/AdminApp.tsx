@@ -7,6 +7,7 @@ import { LinkChecker } from "./LinkChecker";
 import { Reports } from "./Reports";
 import { MetricsView } from "./MetricsView";
 import { QuizEditor } from "./QuizEditor";
+import { TelegramSetup } from "./TelegramSetup";
 
 interface Session {
   enabled: boolean;
@@ -166,6 +167,7 @@ export function AdminApp() {
   const chips: [string, boolean][] = [
     [`Base de datos: ${s.baseDeDatos === "supabase" ? "Supabase" : "memoria (temporal)"}`, s.baseDeDatos === "supabase"],
     ["WhatsApp", Boolean(s.whatsapp)],
+    ["Telegram", Boolean(s.telegram)],
     ["IA (Gemini)", Boolean(s.ia)],
     ["Safe Browsing", Boolean(s.safeBrowsing)],
     ["Firma de Meta", Boolean(s.firmaWebhook)],
@@ -193,6 +195,7 @@ export function AdminApp() {
           </li>
         ))}
       </ul>
+      <TelegramSetup />
       <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-black/10">
         {TABS.map((t) => (
           <button

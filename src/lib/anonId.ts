@@ -19,6 +19,11 @@ export function whatsappAnonId(phone: string): string {
   return `WA-${createHmac("sha256", secret()).update(digits).digest("hex").slice(0, 12)}`;
 }
 
+/** ID anónimo e irreversible para un usuario de Telegram. */
+export function telegramAnonId(userId: number): string {
+  return `TG-${createHmac("sha256", secret()).update(`tg:${userId}`).digest("hex").slice(0, 12)}`;
+}
+
 /** Lee o crea el ID anónimo del navegador (web y aula). Solo en Route Handlers. */
 export async function webAnonId(): Promise<string> {
   const jar = await cookies();

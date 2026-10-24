@@ -58,13 +58,17 @@ create table if not exists quizzes (
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   anon_id text not null,
-  channel text not null check (channel in ('whatsapp', 'web', 'aula')),
+  channel text not null check (channel in ('whatsapp', 'telegram', 'web', 'aula')),
   type text not null,
   verdict text,
   data jsonb not null default '{}',
   created_at timestamptz not null default now()
 );
 create index if not exists events_created_at on events (created_at desc);
+-- Para bases creadas antes de agregar Telegram: actualiza la lista de canales.
+alter table events drop constraint if exists events_channel_check;
+alter table events add constraint events_channel_check
+  check (channel in ('whatsapp', 'telegram', 'web', 'aula'));
 
 create table if not exists attempts (
   id uuid primary key default gen_random_uuid(),

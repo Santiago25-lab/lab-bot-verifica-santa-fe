@@ -50,6 +50,7 @@ export interface BotContext {
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
 const WA_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+const TG_BOT = (process.env.NEXT_PUBLIC_TELEGRAM_BOT || "").replace(/^@/, "");
 
 const B = {
   verificar: { id: "menu_verificar", title: "🔍 Verificar" },
@@ -286,7 +287,7 @@ function alertReply(state: BotState): BotReply {
     ? ` que se hace pasar por ${state.alert.entities.join(" y ")}`
     : "";
   const dom = state.alert?.domains.length ? ` con links a ${state.alert.domains.join(", ")}` : "";
-  const wa = WA_NUMBER ? ` (wa.me/${WA_NUMBER})` : "";
+  const wa = WA_NUMBER ? ` (wa.me/${WA_NUMBER})` : TG_BOT ? ` (t.me/${TG_BOT})` : "";
   return {
     text:
       "🚨 *Avísale a tu frente de seguridad.* Copia y reenvía esto:\n\n" +

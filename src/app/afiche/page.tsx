@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://lab-bot-verifica-santa-fe.vercel.app").replace(/\/$/, "");
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+const TG = (process.env.NEXT_PUBLIC_TELEGRAM_BOT || "").replace(/^@/, "");
 
 const qr = (url: string) =>
   QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#0c483d", light: "#ffffff" } });
@@ -22,6 +23,9 @@ export default async function AfichePage() {
     { title: "Prueba de entrada", text: "6 preguntas para saber cuánto reconoces hoy.", url: `${SITE}/aula/${PRE_SLUG}` },
     ...(WA
       ? [{ title: "Bot por WhatsApp", text: "Guárdalo y reenvíale los mensajes raros.", url: `https://wa.me/${WA}?text=Hola` }]
+      : []),
+    ...(TG
+      ? [{ title: "Bot por Telegram", text: "Ábrelo y reenvíale los mensajes raros.", url: `https://t.me/${TG}` }]
       : []),
   ];
   const svgs = await Promise.all(codes.map((c) => qr(c.url)));
@@ -43,7 +47,7 @@ export default async function AfichePage() {
         <h1 className="mt-6 text-4xl font-extrabold leading-tight">
           ¿Te llegó un mensaje raro? <span className="text-brand-700">Revísalo antes de pagar.</span>
         </h1>
-        <div className={`mt-8 grid gap-6 ${codes.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <div className={`mt-8 grid gap-6 ${codes.length === 3 ? "sm:grid-cols-3" : codes.length === 4 ? "sm:grid-cols-4" : "sm:grid-cols-2"}`}>
           {codes.map((c, i) => (
             <figure key={c.title} className="rounded-2xl border border-black/10 p-4 text-center">
               <div className="mx-auto w-44" dangerouslySetInnerHTML={{ __html: svgs[i] }} />
