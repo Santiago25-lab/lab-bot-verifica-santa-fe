@@ -11,7 +11,8 @@ const EVERY_MS = 2 * 60_000;
 export function PaymentReminder() {
   const pathname = usePathname();
   const active = MODE === "todo" || (MODE === "admin" && pathname.startsWith("/admin"));
-  const [open, setOpen] = useState(false);
+  // Sale apenas se entra a la página y luego cada 2 minutos.
+  const [open, setOpen] = useState(active);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
