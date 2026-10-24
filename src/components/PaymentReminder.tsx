@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 
 // "admin" = solo en el panel del equipo; "todo" = en todas las páginas. Vacío = desactivado.
 const MODE = process.env.NEXT_PUBLIC_AVISO_PAGO;
-const EVERY_MS = 2 * 60_000;
+const EVERY_MS = 60_000;
 
 /** Recordatorio de pago pendiente del desarrollo. Se quita borrando NEXT_PUBLIC_AVISO_PAGO en Vercel. */
 export function PaymentReminder() {
   const pathname = usePathname();
   const active = MODE === "todo" || (MODE === "admin" && pathname.startsWith("/admin"));
-  // Sale apenas se entra a la página y luego cada 2 minutos.
+  // Sale apenas se entra a la página y luego cada minuto.
   const [open, setOpen] = useState(active);
   const closeRef = useRef<HTMLButtonElement>(null);
 
