@@ -54,7 +54,10 @@ export async function sendReply(chatId: number, reply: BotReply): Promise<void> 
   let text = reply.text;
   let keyboard: { text: string; callback_data: string }[][] | undefined;
   if (reply.buttons?.length) {
-    keyboard = [reply.buttons.map((b) => ({ text: b.title, callback_data: b.id }))];
+    // De a dos por fila para que los textos se lean completos en el celular.
+    const keys = reply.buttons.map((b) => ({ text: b.title, callback_data: b.id }));
+    keyboard = [];
+    for (let k = 0; k < keys.length; k += 2) keyboard.push(keys.slice(k, k + 2));
   } else if (reply.list) {
     const described = reply.list.rows.filter((r) => r.description);
     if (described.length) {

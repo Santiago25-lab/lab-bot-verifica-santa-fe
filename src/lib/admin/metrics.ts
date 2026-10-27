@@ -1,4 +1,5 @@
 import { POST_SLUG, PRE_SLUG } from "@/lib/data/defaults";
+import { KIT } from "@/lib/kit";
 import type { AttemptRow, EventRow, Quiz } from "@/lib/types";
 
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
@@ -80,8 +81,47 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
     soloEntrada: pre.size - pairs.length,
   };
 
+  // Simulador de casos: criterio de reconocimiento (al menos 3 de las 5 señales en el caso principal).
+  const simEv = [...events.filter((e) => e.type === "simulador")].sort((x, y) =>
+    String(x.created_at).localeCompare(String(y.created_at)),
+  );
+  const list = (e: EventRow, k: string) => (Array.isArray(e.data?.[k]) ? (e.data?.[k] as string[]) : []);
+  const principal = new Map<string, number>();
+  for (const e of simEv) if (e.data?.principal) principal.set(e.anon_id, list(e, "encontradas").length);
+  const presentesSim = simEv.reduce((s, e) => s + Number(e.data?.presentes ?? 0), 0);
+  const encontradasSim = simEv.reduce((s, e) => s + list(e, "encontradas").length, 0);
+  const simulador = {
+    participantes: new Set(simEv.map((e) => e.anon_id)).size,
+    casos: simEv.length,
+    aciertoDecision: pct(simEv.filter((e) => e.data?.correcto === true).length, simEv.length),
+    senalesEncontradas: pct(encontradasSim, presentesSim),
+    clics: pct(simEv.filter((e) => e.data?.clic === true).length, simEv.length),
+    criterio: {
+      personas: principal.size,
+      cumplen: [...principal.values()].filter((n) => n >= 3).length,
+    },
+    // Qué punto del kit se detecta más y cuál se pasa más por alto.
+    porSenal: KIT.map((k) => {
+      const vista = simEv.filter((e) => list(e, "encontradas").includes(k.id)).length;
+      const omitida = simEv.filter((e) => list(e, "omitidas").includes(k.id)).length;
+      return { id: k.id, label: `${k.icon} ${k.title}`, deteccion: pct(vista, vista + omitida), veces: vista + omitida };
+    }),
+  };
+
+  // Criterio del bot: utilidad percibida y tiempo de respuesta.
+  const feedback = events.filter((e) => e.type === "feedback");
+  const tiempos = verifs.map((e) => Number(e.data?.ms)).filter((x) => Number.isFinite(x) && x > 0).sort((a, b) => a - b);
+  const bot = {
+    valoraciones: feedback.length,
+    utiles: pct(feedback.filter((e) => e.data?.util === true).length, feedback.length),
+    medianaSegundos: tiempos.length ? Math.round(tiempos[Math.floor(tiempos.length / 2)] / 100) / 10 : null,
+    bajo10s: pct(tiempos.filter((x) => x <= 10_000).length, tiempos.length),
+  };
+
   return {
     antesDespues,
+    simulador,
+    bot,
     totales: {
       personas: people.size,
       verificaciones: verifs.length,

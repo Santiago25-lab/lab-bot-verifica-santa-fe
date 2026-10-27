@@ -12,6 +12,9 @@ Un mismo motor de análisis atiende:
 | Inicio | `/` | Tres acciones grandes (revisar, practicar, ya caí), ejemplos con un toque y el semáforo explicado |
 | Bot web | `/verificar` | El mismo bot dentro de la página (`/verificar?m=texto` lo envía solo) |
 | Ayuda urgente | `/ayuda` | Botones para llamar al 165 y al 123, pasos por caso y alerta vecinal para copiar |
+| Simulador de casos | `/simulador` | Mensajes ficticios para revisar con el kit de 5 puntos (remitente, URL, urgencia, adjunto, ortografía); links trampa sin funcionar y cierre explicativo |
+| Modo taller | `/taller` | Código por participante (T1-P01), consentimiento, lista de observación imprimible (`/taller/observacion`) y consentimiento (`/taller/consentimiento`) |
+| Kit para la caja | `/kit` | Sticker imprimible con los 5 puntos y QR |
 | Aula virtual | `/aula` | Pruebas de entrada y salida, prácticas y encuesta, sin registro |
 | Afiche con QR | `/afiche` | Afiche imprimible para la Escuela Móvil |
 | Panel del equipo | `/admin` | Listas, palabras clave, contactos, simulacros, aula e indicadores |

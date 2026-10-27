@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChatDemo } from "@/components/ChatDemo";
 import { PoliceMascot } from "@/components/PoliceMascot";
+import { KIT } from "@/lib/kit";
 
 const WA = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "").replace(/\D/g, "");
 const waLink = WA ? `https://wa.me/${WA}?text=${encodeURIComponent("Hola")}` : null;
@@ -37,13 +38,6 @@ const semaforo = [
   },
 ];
 
-const senales = [
-  ["🔗", "El link no es el oficial", "La DIAN usa dian.gov.co, no dian-col.com."],
-  ["⏰", "Te apuran o amenazan", "«Embargo en 24 horas», «cuenta bloqueada»."],
-  ["🔑", "Te piden un código o clave", "Nadie de verdad te lo pide. Nunca."],
-  ["🎁", "Premios o préstamos que no pediste", "Si es demasiado bueno, es trampa."],
-  ["🧾", "Pantallazos de pago", "Confirma el dinero en TU app antes de entregar."],
-];
 
 export default function Home() {
   return (
@@ -74,7 +68,7 @@ export default function Home() {
                 tone="primary"
               />
               <div className="grid gap-3 sm:grid-cols-2">
-                <ActionCard href="/aula" icon="🎯" title="Practicar" text="Aprende en 2 minutos" tone="light" />
+                <ActionCard href="/simulador" icon="🎯" title="Simulador" text="¿Caerías? Practica con casos" tone="light" />
                 <ActionCard href="/ayuda" icon="🆘" title="Ya caí" text="Qué hacer y a quién llamar" tone="danger" />
               </div>
               {waLink && (
@@ -166,29 +160,67 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Señales para recordar */}
+      {/* 4. Kit de verificación de 5 puntos (el mismo del sticker del taller) */}
       <section className="mx-auto max-w-6xl px-4 py-10">
-        <h2 className="text-2xl font-bold">5 señales de que es una trampa</h2>
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {senales.map(([icon, t, d]) => (
-            <li key={t} className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-              <span className="text-3xl" aria-hidden="true">
-                {icon}
+        <p className="text-sm font-semibold text-brand-700">📚 Aprende</p>
+        <h2 className="text-2xl font-bold">Kit de verificación: revisa estos 5 puntos</h2>
+        <p className="mt-1 max-w-2xl text-muted">
+          Antes de pagar, abrir un link o descargar un archivo, hazte estas cinco preguntas. Con una
+          sola señal, desconfía.
+        </p>
+        <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {KIT.map((k, i) => (
+            <li key={k.id} className="flex flex-col rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+              <span className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">{i + 1}</span>
+                <span className="text-2xl" aria-hidden="true">{k.icon}</span>
               </span>
-              <p className="mt-2 font-bold">{t}</p>
-              <p className="text-sm text-muted">{d}</p>
+              <p className="mt-2 font-bold">{k.title}</p>
+              <p className="font-medium text-brand-800">{k.question}</p>
+              <p className="mt-1 text-sm text-muted">{k.tip}</p>
+              <p className="mt-auto pt-2 text-xs italic text-muted">Ej.: {k.example}</p>
             </li>
           ))}
-        </ul>
-        <Link
-          href="/aula"
-          className="mt-6 flex min-h-14 items-center justify-center rounded-2xl bg-ink px-6 py-3 text-lg font-semibold text-white hover:bg-black sm:inline-flex"
-        >
-          🎯 Ponte a prueba en el aula virtual
-        </Link>
+        </ol>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/simulador"
+            className="flex min-h-14 items-center justify-center rounded-2xl bg-ink px-6 py-3 text-lg font-semibold text-white hover:bg-black"
+          >
+            🎯 Ponte a prueba en el simulador
+          </Link>
+          <Link
+            href="/kit"
+            className="flex min-h-14 items-center justify-center rounded-2xl border-2 border-ink px-6 py-3 text-lg font-semibold hover:bg-white"
+          >
+            🖨️ Imprime el kit para tu caja
+          </Link>
+        </div>
       </section>
 
-      {/* 5. Ayuda urgente siempre a mano */}
+      {/* 5. Capacitación */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <h2 className="text-2xl font-bold">Capacitación para tu negocio</h2>
+          <ul className="mt-5 grid gap-3 md:grid-cols-3">
+            {[
+              { href: "/simulador", icon: "🎯", title: "Simulador de casos", text: "Revisa mensajes como los que llegan a tu negocio y descubre si caerías. Nada se abre de verdad." },
+              { href: "/aula", icon: "📚", title: "Aula virtual", text: "Pruebas cortas sin registro: mide cuánto sabes antes y después." },
+              { href: "/taller", icon: "👥", title: "Taller móvil", text: "Para facilitadores: códigos por participante, consentimiento y lista de observación." },
+            ].map((c) => (
+              <li key={c.href}>
+                <Link href={c.href} className="flex h-full flex-col rounded-2xl border border-black/10 p-5 hover:border-brand-500">
+                  <span className="text-3xl" aria-hidden="true">{c.icon}</span>
+                  <span className="mt-2 text-lg font-bold">{c.title}</span>
+                  <span className="mt-1 text-sm text-muted">{c.text}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* 6. Ayuda urgente siempre a mano */}
       <section className="mx-auto max-w-6xl px-4 pb-12">
         <div className="rounded-3xl bg-brand-900 p-6 text-white sm:p-10">
           <h2 className="text-2xl font-bold">¿Ya pagaste o diste datos?</h2>

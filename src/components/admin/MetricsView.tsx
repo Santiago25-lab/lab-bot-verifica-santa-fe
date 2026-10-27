@@ -124,6 +124,43 @@ export function MetricsView() {
         <Tile label="Derivaciones y alertas" value={t.triage + t.alertas} hint={`${t.triage} triage · ${t.alertas} alertas · ${t.reportes} reportes`} />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title="🎯 Simulador de casos">
+          {m.simulador.casos ? (
+            <div className="space-y-4">
+              <p className="text-sm">
+                <strong>Criterio de reconocimiento:</strong>{" "}
+                <strong className="text-lg">
+                  {m.simulador.criterio.cumplen} de {m.simulador.criterio.personas}
+                </strong>{" "}
+                participantes identificaron al menos 3 de las 5 señales en la falsa factura.
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="rounded-xl bg-surface p-2"><p className="text-xl font-bold">{m.simulador.aciertoDecision}%</p><p className="text-muted">decisiones correctas</p></div>
+                <div className="rounded-xl bg-surface p-2"><p className="text-xl font-bold">{m.simulador.senalesEncontradas}%</p><p className="text-muted">señales encontradas</p></div>
+                <div className="rounded-xl bg-surface p-2"><p className="text-xl font-bold">{m.simulador.clics}%</p><p className="text-muted">casos con clic en la trampa</p></div>
+              </div>
+              <div>
+                <p className="mb-2 text-sm text-muted">% de veces que se detectó cada punto del kit</p>
+                <Bars rows={m.simulador.porSenal.map((s) => ({ label: s.label, n: s.deteccion }))} suffix="%" />
+              </div>
+              <p className="text-xs text-muted">{m.simulador.participantes} participantes · {m.simulador.casos} casos respondidos</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted">Aún nadie ha usado el simulador. Ábrelo en /simulador o desde el modo taller.</p>
+          )}
+        </Card>
+        <Card title="🤖 Bot: utilidad y tiempo de respuesta">
+          <div className="grid grid-cols-2 gap-2 text-center text-sm">
+            <div className="rounded-xl bg-surface p-3"><p className="text-2xl font-bold">{m.bot.valoraciones ? `${m.bot.utiles}%` : "—"}</p><p className="text-muted">respuestas marcadas «👍 Me sirvió»</p></div>
+            <div className="rounded-xl bg-surface p-3"><p className="text-2xl font-bold">{m.bot.medianaSegundos ?? "—"}{m.bot.medianaSegundos !== null && " s"}</p><p className="text-muted">tiempo típico de respuesta</p></div>
+          </div>
+          <p className="mt-3 text-xs text-muted">
+            {m.bot.valoraciones} valoraciones · {m.bot.bajo10s}% de las respuestas en 10 segundos o menos.
+          </p>
+        </Card>
+      </div>
+
       <Card title="Antes y después: capacidad para reconocer señales">
         {m.antesDespues.personas ? (
           <div className="space-y-4">

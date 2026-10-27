@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
 import { PaymentReminder } from "@/components/PaymentReminder";
+import { TallerBadge } from "@/components/TallerBadge";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -50,6 +51,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/verificar" className="rounded-lg px-3 py-2 hover:bg-brand-50">
                 Revisar mensaje
               </Link>
+              <Link href="/simulador" className="rounded-lg px-3 py-2 hover:bg-brand-50">
+                Simulador
+              </Link>
               <Link href="/aula" className="rounded-lg px-3 py-2 hover:bg-brand-50">
                 Aula virtual
               </Link>
@@ -68,7 +72,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               ¿Ya caíste? Llama gratis a la <strong className="text-ink">línea 165</strong> de la
               Policía · Emergencias <strong className="text-ink">123</strong>
             </p>
+            <p className="text-xs sm:max-w-sm">
+              Proyecto académico de prevención. No es un canal oficial de la Policía Nacional ni reemplaza
+              una denuncia.
+            </p>
             <div className="flex gap-4">
+              <Link href="/kit" className="hover:text-ink">
+                Kit
+              </Link>
+              <Link href="/taller" className="hover:text-ink">
+                Taller
+              </Link>
               <Link href="/privacidad" className="hover:text-ink">
                 Aviso de privacidad
               </Link>
@@ -84,6 +98,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </Suspense>
         <Suspense fallback={null}>
           <PaymentReminder />
+        </Suspense>
+        <Suspense fallback={null}>
+          <TallerBadge />
         </Suspense>
       </body>
     </html>

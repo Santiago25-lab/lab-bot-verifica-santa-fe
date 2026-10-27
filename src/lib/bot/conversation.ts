@@ -60,6 +60,8 @@ const B = {
   otroSim: { id: "menu_simulacro", title: "🎯 Otro simulacro" },
   otraVerif: { id: "menu_verificar", title: "🔍 Verificar otro" },
   reportar: { id: "reportar", title: "🚩 Reportar" },
+  util: { id: "util_si", title: "👍 Me sirvió" },
+  noUtil: { id: "util_no", title: "👎 No entendí" },
 };
 
 const MENU_BUTTONS = [B.verificar, B.simulacro, B.cai];
@@ -87,8 +89,10 @@ function welcome(): BotReply {
     text:
       "👋 Hola, soy *Verifica Santa Fe*.\n" +
       "Reenvíame un mensaje, un link o una captura de pantalla que te parezca raro y te digo si tiene señales de fraude.\n\n" +
-      "🔒 No guardo tus mensajes ni tu número: los analizo y los descarto (solo si tú lo reportas con 🚩, guardo el mensaje sin tus datos)." +
-      (SITE ? ` Aviso de privacidad: ${SITE}/privacidad` : ""),
+      "🔒 No guardo tus mensajes ni tu número: los analizo y los descarto (solo si tú lo reportas con 🚩, guardo el mensaje sin tus datos). " +
+      "Al escribirme autorizas este uso anónimo (Ley 1581 de 2012). Para explicar mejor, uso reglas y una IA de apoyo que recibe el texto sin datos personales." +
+      (SITE ? ` Aviso de privacidad: ${SITE}/privacidad` : "") +
+      "\n\n🎓 Proyecto académico de prevención; no reemplaza a la Policía ni a tu banco.",
   };
 }
 
@@ -164,6 +168,11 @@ export function formatAnalysis(a: Analysis): string {
   return lines.join("\n");
 }
 
+/** WhatsApp admite solo 3 botones; en web y Telegram se agrega la valoración de la respuesta. */
+function withFeedback(buttons: BotButton[], ctx: BotContext): BotButton[] {
+  return ctx.channel === "whatsapp" ? buttons : [...buttons, B.util, B.noUtil];
+}
+
 async function verify(
   text: string,
   state: BotState,
@@ -171,6 +180,7 @@ async function verify(
   fromImage: boolean,
 ): Promise<{ replies: BotReply[]; state: BotState }> {
   const useAi = aiEnabled();
+  const started = Date.now();
   const a = await analyzeMessage(text, ctx.config, {
     expandLinks: true,
     safeBrowsing: true,
@@ -195,6 +205,7 @@ async function verify(
       links: a.officialDomains.length + a.suspiciousDomains.length,
       image: fromImage,
       ai: Boolean(a.aiExplanation),
+      ms: Date.now() - started,
     },
   });
   const replies: BotReply[] = [
@@ -210,13 +221,13 @@ async function verify(
   if (a.verdict === "sin_senales") {
     replies.push({
       text: "¿Algo más? Si igual te parece raro, puedes reportarlo.",
-      buttons: [B.otraVerif, B.reportar, B.menu],
+      buttons: withFeedback([B.otraVerif, B.reportar, B.menu], ctx),
     });
     return { replies, state: { ...state, step: "idle", alert: undefined, lastReport } };
   }
   replies.push({
     text: "¿Ya hiciste clic, pagaste o diste datos?\n🚩 Si quieres, reporta el mensaje para alertar a otros comerciantes.",
-    buttons: [TRIAGE_YES, TRIAGE_NO, B.reportar],
+    buttons: withFeedback([TRIAGE_YES, TRIAGE_NO, B.reportar], ctx),
   });
   return {
     replies,
@@ -387,6 +398,8 @@ export async function handleMessage(
       } else if (/^que es (el |un )?(phishing|smishing|vishing|eso|fraude|estafa)$/.test(n)) buttonId = "que_es";
       else if (/^(como|donde) (denuncio|puedo denunciar|denunciar)|^quiero denunciar/.test(n)) buttonId = "denuncia";
       else if (n === "verificar") buttonId = "menu_verificar";
+      else if (/^me sirvio|^(si )?(me )?ayudo$/.test(n)) buttonId = "util_si";
+      else if (/^no (te |le )?entendi|^no me sirvio/.test(n)) buttonId = "util_no";
       else if (/^reportar( mensaje| este mensaje)?$|^reportarlo$/.test(n)) buttonId = "reportar";
     }
   }
@@ -424,6 +437,22 @@ export async function handleMessage(
               : menu(thanks),
           ],
           state: next,
+        });
+      }
+      case "util_si":
+      case "util_no": {
+        const util = buttonId === "util_si";
+        await ctx.log({ type: "feedback", data: { util } });
+        const text = util
+          ? "🙏 ¡Gracias! Nos ayuda a mejorar."
+          : "🙏 Gracias por decirnos. En resumen: si un mensaje te apura, te pide datos o trae un link raro, no actúes y confirma por otro medio. Puedes escribir AYUDA cuando quieras.";
+        return done({
+          replies: [
+            state.step === "triage_ask"
+              ? { text: `${text}\n\n¿Ya hiciste clic, pagaste o diste datos?`, buttons: [TRIAGE_YES, TRIAGE_NO, B.reportar] }
+              : menu(text),
+          ],
+          state,
         });
       }
       case "gracias":

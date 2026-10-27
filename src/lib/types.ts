@@ -122,7 +122,9 @@ export type EventType =
   | "simulacro"
   | "triage"
   | "alerta"
-  | "reporte";
+  | "reporte"
+  | "simulador"
+  | "feedback";
 
 export interface EventRow {
   id?: string;

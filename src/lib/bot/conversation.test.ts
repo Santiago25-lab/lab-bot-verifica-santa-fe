@@ -82,3 +82,25 @@ describe("reportar mensajes", () => {
     expect(replies[0].text).toContain("Primero envíame");
   });
 });
+
+describe("criterio del bot", () => {
+  it("en la web ofrece valorar la respuesta y guarda la valoración", async () => {
+    const logged: { type: string; data?: Record<string, unknown> }[] = [];
+    const c = { ...ctx, log: async (e: { type: string; data?: Record<string, unknown> }) => void logged.push(e) };
+    const first = await handleMessage({ kind: "text", text: "compártenos el código que te llegó" }, { welcomed: true }, c);
+    expect(first.replies.at(-1)?.buttons?.map((b) => b.id)).toContain("util_si");
+    expect(typeof logged.find((e) => e.type === "verificacion")?.data?.ms).toBe("number");
+    const second = await handleMessage({ kind: "button", id: "util_si" }, first.state, c);
+    expect(second.replies[0].text).toContain("Gracias");
+    expect(logged.find((e) => e.type === "feedback")?.data?.util).toBe(true);
+  });
+
+  it("en WhatsApp no pasa de 3 botones", async () => {
+    const { replies } = await handleMessage(
+      { kind: "text", text: "compártenos el código que te llegó" },
+      { welcomed: true },
+      { ...ctx, channel: "whatsapp" as const },
+    );
+    for (const r of replies) expect((r.buttons ?? []).length).toBeLessThanOrEqual(3);
+  });
+});

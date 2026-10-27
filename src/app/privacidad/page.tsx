@@ -38,10 +38,39 @@ export default function PrivacidadPage() {
           números, nombres y las rutas de los links.
         </li>
         <li>
-          <strong>Revisión con IA:</strong> antes de enviar un texto a un servicio de IA quitamos
-          números, nombres, correos y rutas de los links.
+          <strong>Simulador y modo taller:</strong> guardamos qué señales encontraste y si acertaste,
+          con un código anónimo o con el código de participante que asigna el facilitador. Nunca tu
+          nombre. Los mensajes del simulador son inventados y ningún link se abre de verdad.
+        </li>
+        <li>
+          <strong>Mensajes que reenvías:</strong> pueden traer datos de otras personas (nombres,
+          números). Por eso no los guardamos y, si los reportas, los anonimizamos antes.
         </li>
       </ul>
+
+      <h2 className="pt-2 text-xl font-semibold">Uso de inteligencia artificial</h2>
+      <p>
+        Para explicar algunos resultados usamos un servicio de IA generativa (Google Gemini). La IA
+        recibe el texto <strong>sin números, nombres, correos ni rutas de links</strong>, solo puede
+        hacer más estricta la alerta (nunca la baja) y no toma decisiones sobre personas. Las reglas
+        del sistema deciden el resultado. Declaramos este uso conforme a los lineamientos
+        institucionales sobre IA aplicables al proyecto.
+      </p>
+
+      <h2 className="pt-2 text-xl font-semibold">Autorización</h2>
+      <p>
+        Al usar el bot, el simulador o el aula virtual autorizas el tratamiento anónimo descrito en
+        este aviso para fines académicos y de prevención. En los talleres presenciales, además, se
+        firma un consentimiento informado antes del simulacro. Puedes dejar de participar en
+        cualquier momento.
+      </p>
+
+      <h2 className="pt-2 text-xl font-semibold">Naturaleza del proyecto</h2>
+      <p>
+        Verifica Santa Fe es un <strong>proyecto académico de prevención</strong>. No es un canal
+        oficial de la Policía Nacional ni de ninguna entidad, y no recibe denuncias. Para denunciar,
+        llama a la línea 165 o usa el CAI Virtual.
+      </p>
 
       <h2 className="pt-2 text-xl font-semibold">Finalidad</h2>
       <p>
