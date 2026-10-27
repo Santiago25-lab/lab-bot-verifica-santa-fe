@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { POST_SLUG, PRE_SLUG } from "@/lib/data/defaults";
+import { POST_SLUG, PRE_SLUG, SEGUIMIENTO_SLUG } from "@/lib/data/defaults";
 
 const PASOS = [
   { href: `/aula/${PRE_SLUG}`, icon: "📝", title: "Prueba de entrada", text: "6 preguntas, antes de la capacitación." },
   { href: "/simulador", icon: "🎯", title: "Simulador de casos", text: "5 mensajes revisados con el kit de 5 puntos." },
   { href: `/aula/${POST_SLUG}`, icon: "✅", title: "Prueba de salida", text: "Al final, para medir el avance." },
   { href: "/aula/encuesta-de-percepcion", icon: "💬", title: "Encuesta de percepción", text: "Opinión del participante (1 a 5)." },
+  { href: `/aula/${SEGUIMIENTO_SLUG}`, icon: "📅", title: "Encuesta de seguimiento", text: "Día 15 del pilotaje: uso del bot y del kit." },
 ];
 
 /** Panel del facilitador: asigna un código a cada participante para que una tablet compartida no mezcle resultados. */

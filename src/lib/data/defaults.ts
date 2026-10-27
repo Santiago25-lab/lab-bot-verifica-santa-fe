@@ -14,7 +14,7 @@ import type {
  */
 
 /** Súbelo al agregar datos iniciales: la app los añade a una base ya cargada. */
-export const SEED_VERSION = "3";
+export const SEED_VERSION = "4";
 
 const white: [string, string, boolean][] = [
   ["dian.gov.co", "DIAN", true],
@@ -305,6 +305,7 @@ const fr = (prompt: string, scenario: string, fraude: boolean, explanation: stri
 /** Slugs fijos: el panel compara la prueba de entrada con la de salida de cada persona. */
 export const PRE_SLUG = "prueba-de-entrada";
 export const POST_SLUG = "prueba-de-salida";
+export const SEGUIMIENTO_SLUG = "encuesta-de-seguimiento";
 
 export const defaultQuizzes: Quiz[] = [
   {
@@ -484,6 +485,29 @@ export const defaultQuizzes: Quiz[] = [
         options: ["Sí", "No", "Todavía no lo he usado"],
       },
       { id: "e-6", prompt: "Recomendaría Verifica Santa Fe a otro comerciante.", options: likert },
+    ],
+  },
+  {
+    // Instrumento del criterio de uso del bot: se aplica al terminar los 15 días de pilotaje.
+    id: "q-seguimiento",
+    slug: SEGUIMIENTO_SLUG,
+    title: "Encuesta de seguimiento (día 15)",
+    description: "Para quienes participaron en el taller: 7 preguntas sobre los últimos 15 días.",
+    kind: "encuesta",
+    published: true,
+    sort: 5,
+    questions: [
+      { id: "s-1", prompt: "¿Usaste el bot Verifica Santa Fe en los últimos 15 días?", options: ["Sí", "No"] },
+      { id: "s-2", prompt: "¿Cuántas veces lo usaste?", options: ["Ninguna", "1 vez", "De 2 a 5 veces", "Más de 5 veces"] },
+      { id: "s-3", prompt: "¿Por dónde lo usaste más?", options: ["Página web", "Telegram", "WhatsApp", "No lo usé"] },
+      { id: "s-4", prompt: "La respuesta del bot fue fácil de entender.", options: likert },
+      {
+        id: "s-5",
+        prompt: "¿Te llegó algún mensaje sospechoso en estos 15 días?",
+        options: ["Sí, y no hice lo que pedía", "Sí, y alcancé a abrir, responder o pagar", "No me llegó ninguno"],
+      },
+      { id: "s-6", prompt: "Revisé los 5 puntos del kit antes de pagar, abrir un link o descargar un archivo.", options: likert },
+      { id: "s-7", prompt: "¿El kit de 5 puntos sigue pegado en tu caja?", options: ["Sí", "No", "No lo recibí"] },
     ],
   },
 ];
