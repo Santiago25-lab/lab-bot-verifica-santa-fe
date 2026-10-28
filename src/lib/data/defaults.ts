@@ -14,7 +14,7 @@ import type {
  */
 
 /** Súbelo al agregar datos iniciales: la app los añade a una base ya cargada. */
-export const SEED_VERSION = "4";
+export const SEED_VERSION = "5";
 
 const white: [string, string, boolean][] = [
   ["dian.gov.co", "DIAN", true],
@@ -485,6 +485,59 @@ export const defaultQuizzes: Quiz[] = [
         options: ["Sí", "No", "Todavía no lo he usado"],
       },
       { id: "e-6", prompt: "Recomendaría Verifica Santa Fe a otro comerciante.", options: likert },
+    ],
+  },
+  {
+    // Cubre la parte de la causa que el kit no trata: contraseñas débiles y cuentas sin doble verificación.
+    id: "q-cuentas",
+    slug: "cuida-tus-cuentas",
+    title: "Cuida tus cuentas",
+    description: "5 preguntas sobre contraseñas y verificación en dos pasos para tu banco y tu WhatsApp.",
+    kind: "prueba",
+    published: true,
+    sort: 2,
+    questions: [
+      {
+        id: "c-1",
+        prompt: "¿Cuál de estas contraseñas es más segura?",
+        options: ["123456", "MiNegocio2026", "Arepa-Tienda-Lluvia-47"],
+        correct_index: 2,
+        explanation: "Una frase larga con palabras sin relación y números es difícil de adivinar y fácil de recordar.",
+      },
+      {
+        id: "c-2",
+        prompt: "¿Está bien usar la misma clave para el banco, el correo y las redes sociales?",
+        options: ["Sí, así no la olvido", "No: si roban una, entran a todas"],
+        correct_index: 1,
+        explanation: "Usa una clave distinta por lo menos para el banco y el correo.",
+      },
+      {
+        id: "c-3",
+        prompt: "¿Qué es la verificación en dos pasos?",
+        options: [
+          "Un código o PIN extra que se pide además de la clave",
+          "Escribir la clave dos veces",
+          "Un pago para proteger la cuenta",
+        ],
+        correct_index: 0,
+        explanation: "Aunque alguien tenga tu clave, sin ese segundo paso no puede entrar. Actívala en WhatsApp: Ajustes → Cuenta → Verificación en dos pasos.",
+      },
+      {
+        ...fr(
+          "Un contacto te escribe. ¿Qué es?",
+          "Hola, te envié un código de 6 dígitos por error a tu celular, ¿me lo reenvías porfa?",
+          true,
+          "Ese código sirve para registrar TU WhatsApp en otro celular. Si lo das, te roban la cuenta.",
+        ),
+        id: "c-4",
+      },
+      {
+        id: "c-5",
+        prompt: "¿Dónde es más seguro guardar tus claves?",
+        options: ["En un papel pegado en la caja", "En una nota del celular sin bloqueo", "En la memoria o en un gestor de contraseñas"],
+        correct_index: 2,
+        explanation: "Nunca dejes las claves a la vista de clientes o empleados ni en el celular sin bloqueo.",
+      },
     ],
   },
   {
