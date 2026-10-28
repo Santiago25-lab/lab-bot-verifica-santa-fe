@@ -135,6 +135,14 @@ export function MetricsView() {
                 </strong>{" "}
                 participantes identificaron al menos 3 de las 5 señales en la falsa factura.
               </p>
+              <p className="text-sm">
+                <strong>Conducta segura:</strong>{" "}
+                <strong className="text-lg">
+                  {m.simulador.criterio.seguros} de {m.simulador.criterio.personas}
+                </strong>{" "}
+                no tocaron el enlace ni el archivo trampa de la falsa factura.
+              </p>
+              <p className="text-xs text-muted">Ambos criterios usan el primer intento de cada persona.</p>
               <div className="grid grid-cols-3 gap-2 text-center text-sm">
                 <div className="rounded-xl bg-surface p-2"><p className="text-xl font-bold">{m.simulador.aciertoDecision}%</p><p className="text-muted">decisiones correctas</p></div>
                 <div className="rounded-xl bg-surface p-2"><p className="text-xl font-bold">{m.simulador.senalesEncontradas}%</p><p className="text-muted">señales encontradas</p></div>

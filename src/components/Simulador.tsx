@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { calificarCaso, casosDeSesion, type Caso } from "@/lib/data/casos";
 import { KIT, type KitId } from "@/lib/kit";
 
 type Resultado = ReturnType<typeof calificarCaso> & { clic: boolean };
-type Fase = "consentimiento" | "inicio" | "caso" | "fin";
+type Fase = "cargando" | "consentimiento" | "inicio" | "caso" | "fin";
 
 const CONSENT_KEY = "vsf_sim_consentimiento";
 
@@ -20,7 +20,9 @@ function leerConsentimiento(): boolean {
 
 /** Simulador de casos: el comerciante revisa un mensaje con el kit de 5 puntos y decide si es fraude. */
 export function Simulador() {
-  const [fase, setFase] = useState<Fase>("inicio");
+  // "cargando" hasta saber si hay modo taller: así nadie empieza sin pasar por el consentimiento.
+  const [fase, setFase] = useState<Fase>("cargando");
+  const yaRespondio = useRef(false);
   const [taller, setTaller] = useState<string | null>(null);
   const [acepto, setAcepto] = useState(false);
   const [casos, setCasos] = useState<Caso[]>([]);
@@ -40,9 +42,9 @@ export function Simulador() {
         if (!vivo) return;
         setTaller(d.code);
         // Sin modo taller pedimos el consentimiento digital una sola vez.
-        if (!d.code && !leerConsentimiento()) setFase("consentimiento");
+        setFase(!d.code && !leerConsentimiento() ? "consentimiento" : "inicio");
       })
-      .catch(() => vivo && !leerConsentimiento() && setFase("consentimiento"));
+      .catch(() => vivo && setFase(leerConsentimiento() ? "inicio" : "consentimiento"));
     return () => {
       vivo = false;
     };
@@ -58,6 +60,7 @@ export function Simulador() {
   }
 
   function nuevoCaso() {
+    yaRespondio.current = false;
     setMarcadas([]);
     setClic(false);
     setTrampa(null);
@@ -77,7 +80,8 @@ export function Simulador() {
   const caso = casos[i];
 
   async function responder(fraude: boolean) {
-    if (!caso) return;
+    if (!caso || yaRespondio.current) return;
+    yaRespondio.current = true;
     const local = calificarCaso(caso, marcadas, fraude);
     const r = { ...local, clic };
     setResultado(r);
@@ -102,6 +106,8 @@ export function Simulador() {
     setI(i + 1);
     nuevoCaso();
   }
+
+  if (fase === "cargando") return <p className="text-muted">Cargando…</p>;
 
   if (fase === "consentimiento") {
     return (

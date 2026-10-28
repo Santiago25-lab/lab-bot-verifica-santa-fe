@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { sanitize } from "@/lib/admin/sanitize";
+import { conflictFor } from "@/lib/admin/conflicts";
 import { CONFIG_TABLES, getStore, invalidateConfig, type ConfigTable } from "@/lib/data/store";
 
 type Ctx = { params: Promise<{ table: string }> };
@@ -27,6 +28,8 @@ export async function POST(request: Request, { params }: Ctx) {
   const result = sanitize(table, await request.json().catch(() => ({})));
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
   const row = { id: crypto.randomUUID(), ...result.row };
+  const conflict = await conflictFor(table, row);
+  if (conflict) return Response.json({ error: conflict }, { status: 409 });
   try {
     await getStore().insert(table, row as never);
   } catch (err) {

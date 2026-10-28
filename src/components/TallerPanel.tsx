@@ -12,6 +12,19 @@ const PASOS = [
   { href: `/aula/${SEGUIMIENTO_SLUG}`, icon: "📅", title: "Encuesta de seguimiento", text: "Día 15 del pilotaje: uso del bot y del kit." },
 ];
 
+/**
+ * En una tablet compartida no debe quedar nada del participante anterior: ni la conversación
+ * del bot (que podría reportarse a nombre de otro) ni la aceptación digital del simulador.
+ */
+function limpiarNavegador() {
+  try {
+    sessionStorage.removeItem("vsf_chat_state");
+    localStorage.removeItem("vsf_sim_consentimiento");
+  } catch {
+    /* sin almacenamiento disponible: no hay nada que limpiar */
+  }
+}
+
 /** Panel del facilitador: asigna un código a cada participante para que una tablet compartida no mezcle resultados. */
 export function TallerPanel() {
   const [code, setCode] = useState<string | null | undefined>(undefined);
@@ -36,6 +49,7 @@ export function TallerPanel() {
     });
     const d = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
     if (!res.ok) return setError(d.error ?? "No se pudo empezar.");
+    limpiarNavegador();
     setCode(d.code ?? null);
     setInput("");
     setConsent(false);
@@ -43,6 +57,7 @@ export function TallerPanel() {
 
   async function terminar() {
     await fetch("/api/taller", { method: "DELETE" });
+    limpiarNavegador();
     setCode(null);
   }
 

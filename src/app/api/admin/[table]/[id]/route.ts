@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/adminAuth";
 import { sanitize } from "@/lib/admin/sanitize";
+import { conflictFor } from "@/lib/admin/conflicts";
 import { CONFIG_TABLES, getStore, invalidateConfig, type ConfigTable } from "@/lib/data/store";
 
 type Ctx = { params: Promise<{ table: string; id: string }> };
@@ -18,6 +19,8 @@ export async function PUT(request: Request, { params }: Ctx) {
   if (!target) return Response.json({ error: "No existe" }, { status: 404 });
   const result = sanitize(target.table, await request.json().catch(() => ({})));
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+  const conflict = await conflictFor(target.table, { id: target.id, ...result.row });
+  if (conflict) return Response.json({ error: conflict }, { status: 409 });
   try {
     await getStore().update(target.table, target.id, result.row as never);
   } catch (err) {

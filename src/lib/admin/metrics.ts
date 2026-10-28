@@ -17,14 +17,20 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
 
   const signals = count(verifs.flatMap((e) => (e.data?.signals as string[] | undefined) ?? []));
 
+  // Los días se cuentan en hora de Colombia (UTC-5), no en UTC: un mensaje de las 8 p. m.
+  // pertenece a ese día y no al siguiente.
+  const bogota = (d: string | number | Date) => new Date(d).toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+  const perDay = (list: EventRow[]) => {
+    const m = new Map<string, number>();
+    for (const e of list) if (e.created_at) m.set(bogota(e.created_at), (m.get(bogota(e.created_at)) ?? 0) + 1);
+    return m;
+  };
+  const verifDays = perDay(verifs);
+  const simDays = perDay(sims);
   const days: { date: string; verificaciones: number; simulacros: number }[] = [];
   for (let i = 29; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
-    days.push({
-      date,
-      verificaciones: verifs.filter((e) => e.created_at?.startsWith(date)).length,
-      simulacros: sims.filter((e) => e.created_at?.startsWith(date)).length,
-    });
+    const date = bogota(Date.now() - i * 86400_000);
+    days.push({ date, verificaciones: verifDays.get(date) ?? 0, simulacros: simDays.get(date) ?? 0 });
   }
 
   const byQuiz = (q: Quiz) => attempts.filter((a) => a.quiz_id === q.id);
@@ -86,8 +92,14 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
     String(x.created_at).localeCompare(String(y.created_at)),
   );
   const list = (e: EventRow, k: string) => (Array.isArray(e.data?.[k]) ? (e.data?.[k] as string[]) : []);
-  const principal = new Map<string, number>();
-  for (const e of simEv) if (e.data?.principal) principal.set(e.anon_id, list(e, "encontradas").length);
+  // Se mide el PRIMER intento de cada persona en la falsa factura: los repasos posteriores
+  // («Practicar otra vez») no deben mejorar artificialmente el resultado del testeo.
+  const principal = new Map<string, { encontradas: number; clic: boolean }>();
+  for (const e of simEv) {
+    if (e.data?.principal && !principal.has(e.anon_id)) {
+      principal.set(e.anon_id, { encontradas: list(e, "encontradas").length, clic: e.data?.clic === true });
+    }
+  }
   const presentesSim = simEv.reduce((s, e) => s + Number(e.data?.presentes ?? 0), 0);
   const encontradasSim = simEv.reduce((s, e) => s + list(e, "encontradas").length, 0);
   const simulador = {
@@ -98,7 +110,9 @@ export function buildMetrics(events: EventRow[], attempts: AttemptRow[], quizzes
     clics: pct(simEv.filter((e) => e.data?.clic === true).length, simEv.length),
     criterio: {
       personas: principal.size,
-      cumplen: [...principal.values()].filter((n) => n >= 3).length,
+      cumplen: [...principal.values()].filter((p) => p.encontradas >= 3).length,
+      // Criterio B: no tocaron el enlace ni el archivo trampa de la falsa factura.
+      seguros: [...principal.values()].filter((p) => !p.clic).length,
     },
     // Qué punto del kit se detecta más y cuál se pasa más por alto.
     porSenal: KIT.map((k) => {
@@ -148,7 +162,9 @@ export type Metrics = ReturnType<typeof buildMetrics>;
 
 function csvCell(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = typeof v === "string" ? v : JSON.stringify(v);
+  let s = typeof v === "string" ? v : JSON.stringify(v);
+  // Excel ejecuta como fórmula lo que empieza por = + - @: se antepone un apóstrofo.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

@@ -45,6 +45,12 @@ const DEFAULTS: { [K in ConfigTable]: TableRow[K][] } = {
   quizzes: defaultQuizzes,
 };
 
+/** Registros iniciales que aparecieron en cada versión de los datos (para bases ya cargadas). */
+const NEW_IN_VERSION: Record<string, string[]> = {
+  "4": ["q-seguimiento"],
+  "5": ["q-cuentas"],
+};
+
 const ORDER: Record<ConfigTable, string> = {
   domains: "domain",
   keywords: "phrase",
@@ -141,28 +147,61 @@ function supabaseStore(client: SupabaseClient): Store {
   // nuevos sin tocar los que el equipo ya editó.
   const ensureSeeded = () =>
     (seeded ??= (async () => {
-      const { data } = await client
+      const { data: meta } = await client
         .from("app_meta")
-        .select("value")
-        .eq("key", "seed_version")
-        .maybeSingle();
-      if (data?.value === SEED_VERSION) return;
+        .select("key, value")
+        .in("key", ["seed_version", "seeded_ids"]);
+      const value = (k: string) => meta?.find((m: { key: string }) => m.key === k)?.value as string | undefined;
+      const version = value("seed_version");
+      if (version === SEED_VERSION) return;
+      // IDs que ya se cargaron alguna vez. Si el equipo borró uno, no se vuelve a crear.
+      let yaCargados: Set<string>;
+      try {
+        yaCargados = new Set(JSON.parse(value("seeded_ids") ?? "null") ?? []);
+      } catch {
+        yaCargados = new Set();
+      }
+      if (version && !value("seeded_ids")) {
+        // Bases anteriores a este registro: todo lo que no sea nuevo en esta versión ya se cargó.
+        const nuevos = new Set(Object.entries(NEW_IN_VERSION).filter(([v]) => Number(v) > Number(version)).flatMap(([, ids]) => ids));
+        for (const table of CONFIG_TABLES) for (const r of DEFAULTS[table]) if (!nuevos.has(r.id)) yaCargados.add(r.id);
+      }
       for (const table of CONFIG_TABLES) {
         const { data: rows, error } = await client.from(table).select("id");
         if (error) throw new Error(`No se pudo leer ${table}: ${error.message}`);
         const existing = new Set((rows ?? []).map((r: { id: string }) => r.id));
-        for (const row of DEFAULTS[table].filter((r) => !existing.has(r.id))) {
+        for (const row of DEFAULTS[table].filter((r) => !existing.has(r.id) && !yaCargados.has(r.id))) {
           // Un registro que choca con uno creado a mano (mismo dominio) simplemente se omite.
           await client.from(table).insert(row as never);
         }
       }
-      await client.from("app_meta").upsert({ key: "seed_version", value: SEED_VERSION });
+      const all = CONFIG_TABLES.flatMap((t) => DEFAULTS[t].map((r) => r.id));
+      await client.from("app_meta").upsert([
+        { key: "seed_version", value: SEED_VERSION },
+        { key: "seeded_ids", value: JSON.stringify([...new Set([...yaCargados, ...all])]) },
+      ]);
     })().catch((err) => {
       seeded = null;
       throw err;
     }));
   const check = (error: { message: string } | null) => {
     if (error) throw new Error(error.message);
+  };
+  // Supabase entrega máximo 1.000 filas por consulta: se leen por páginas hasta el límite.
+  const readAll = async (table: "events" | "attempts", limit: number) => {
+    const PAGE = 1000;
+    const out: unknown[] = [];
+    for (let from = 0; from < limit; from += PAGE) {
+      const { data, error } = await client
+        .from(table)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, Math.min(from + PAGE, limit) - 1);
+      check(error);
+      out.push(...(data ?? []));
+      if (!data || data.length < PAGE) break;
+    }
+    return out;
   };
   return {
     kind: "supabase",
@@ -192,22 +231,10 @@ function supabaseStore(client: SupabaseClient): Store {
       check((await client.from("attempts").insert(a)).error);
     },
     async listEvents(limit = 20000) {
-      const { data, error } = await client
-        .from("events")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(limit);
-      check(error);
-      return (data ?? []) as EventRow[];
+      return (await readAll("events", limit)) as EventRow[];
     },
     async listAttempts(limit = 20000) {
-      const { data, error } = await client
-        .from("attempts")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(limit);
-      check(error);
-      return (data ?? []) as AttemptRow[];
+      return (await readAll("attempts", limit)) as AttemptRow[];
     },
     async getSession(anonId) {
       const { data } = await client

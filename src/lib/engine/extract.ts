@@ -58,11 +58,26 @@ export function parseUrl(raw: string): FoundUrl | null {
   };
 }
 
+/**
+ * "aprobada.Si no la reconoces" o "llegué.Me avisas" no son links: falta el espacio después
+ * del punto y la siguiente palabra empieza en mayúscula. Los links reales casi nunca se escriben
+ * así (todo en minúsculas o todo en mayúsculas, o con http/www).
+ */
+function looksLikeSentence(raw: string): boolean {
+  if (/^(https?:\/\/|www\.)/i.test(raw)) return false;
+  const host = raw.split("/")[0];
+  const dot = host.lastIndexOf(".");
+  const before = host.slice(0, dot);
+  const after = host.slice(dot + 1);
+  return /^[A-ZÁÉÍÓÚÑ]/.test(after) && /[a-záéíóúñ]/.test(before) && !/[A-Z]/.test(before);
+}
+
 export function extractUrls(text: string): FoundUrl[] {
   const withoutEmails = text.replace(EMAIL_RE, " ");
   const seen = new Set<string>();
   const out: FoundUrl[] = [];
   for (const m of withoutEmails.matchAll(URL_RE)) {
+    if (looksLikeSentence(m[0])) continue;
     const found = parseUrl(m[0]);
     if (!found || seen.has(found.url)) continue;
     seen.add(found.url);

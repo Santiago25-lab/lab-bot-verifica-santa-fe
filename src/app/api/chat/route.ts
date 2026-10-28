@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { webAnonId } from "@/lib/anonId";
-import { handleMessage, type BotInput, type BotState } from "@/lib/bot/conversation";
+import { handleMessage, sanitizeState, type BotInput } from "@/lib/bot/conversation";
 import { getConfig, getStore } from "@/lib/data/store";
 import { rateLimited } from "@/lib/rateLimit";
 
@@ -10,7 +10,7 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 interface Body {
   input?: { kind?: string; text?: string; id?: string; image?: string; caption?: string };
-  state?: BotState;
+  state?: unknown;
 }
 
 /** Bot web: mismo motor que WhatsApp. El estado de la conversación lo guarda el navegador. */
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   const anonId = await webAnonId();
   const store = getStore();
   const config = await getConfig();
-  const state: BotState = typeof body.state === "object" && body.state ? body.state : {};
+  const state = sanitizeState(body.state);
   const result = await handleMessage(input, state, {
     channel: "web",
     config,

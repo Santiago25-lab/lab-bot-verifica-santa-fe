@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PublicQuiz } from "@/lib/quiz";
 
 interface Result {
@@ -25,6 +25,8 @@ export function QuizRunner() {
   const [result, setResult] = useState<Result | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Evita enviar dos veces si tocan la última respuesta dos veces seguidas.
+  const enviando = useRef(false);
 
   useEffect(() => {
     fetch(`/api/aula/${encodeURIComponent(slug)}`)
@@ -49,6 +51,7 @@ export function QuizRunner() {
   const isLast = step === quiz.questions.length - 1;
 
   async function submit(final: number[]) {
+    enviando.current = true;
     setSending(true);
     setError(null);
     try {
@@ -63,11 +66,13 @@ export function QuizRunner() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
+      enviando.current = false;
       setSending(false);
     }
   }
 
   function choose(i: number) {
+    if (enviando.current) return;
     const next = [...answers];
     next[step] = i;
     setAnswers(next);

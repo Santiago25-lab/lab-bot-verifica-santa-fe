@@ -34,6 +34,42 @@ export interface BotState {
   alert?: { entities: string[]; domains: string[] };
   /** Último mensaje revisado, ya sin datos personales, por si la persona decide reportarlo. */
   lastReport?: { text: string; verdict: Analysis["verdict"]; signals: string[]; domains: string[] };
+  /** La última respuesta del bot aún se puede valorar (👍/👎) una sola vez. */
+  canRate?: boolean;
+}
+
+const VERDICTS: Analysis["verdict"][] = ["peligroso", "sospechoso", "sin_senales"];
+const strList = (v: unknown, max: number, len: number) =>
+  (Array.isArray(v) ? v : []).filter((x): x is string => typeof x === "string").slice(0, max).map((x) => x.slice(0, len));
+
+/**
+ * El bot web guarda el estado en el navegador: antes de usarlo se valida, para que nadie pueda
+ * inventar un reporte con datos personales o textos falsos.
+ */
+export function sanitizeState(raw: unknown): BotState {
+  if (!raw || typeof raw !== "object") return {};
+  const s = raw as Record<string, unknown>;
+  const out: BotState = {};
+  if (s.welcomed === true) out.welcomed = true;
+  if (s.step === "idle" || s.step === "triage_ask" || s.step === "simulacro") out.step = s.step;
+  if (typeof s.simId === "string") out.simId = s.simId.slice(0, 80);
+  const sims = strList(s.lastSims, 3, 80);
+  if (sims.length) out.lastSims = sims;
+  if (s.canRate === true) out.canRate = true;
+  const alert = s.alert as Record<string, unknown> | undefined;
+  if (alert && typeof alert === "object") {
+    out.alert = { entities: strList(alert.entities, 2, 80), domains: strList(alert.domains, 2, 120) };
+  }
+  const r = s.lastReport as Record<string, unknown> | undefined;
+  if (r && typeof r === "object" && typeof r.text === "string" && VERDICTS.includes(r.verdict as Analysis["verdict"])) {
+    out.lastReport = {
+      text: anonymize(r.text).slice(0, 1500),
+      verdict: r.verdict as Analysis["verdict"],
+      signals: strList(r.signals, 20, 40),
+      domains: strList(r.domains, 5, 120),
+    };
+  }
+  return out;
 }
 
 export type BotInput =
@@ -223,7 +259,7 @@ async function verify(
       text: "¿Algo más? Si igual te parece raro, puedes reportarlo.",
       buttons: withFeedback([B.otraVerif, B.reportar, B.menu], ctx),
     });
-    return { replies, state: { ...state, step: "idle", alert: undefined, lastReport } };
+    return { replies, state: { ...state, step: "idle", alert: undefined, lastReport, canRate: true } };
   }
   replies.push({
     text: "¿Ya hiciste clic, pagaste o diste datos?\n🚩 Si quieres, reporta el mensaje para alertar a otros comerciantes.",
@@ -236,6 +272,7 @@ async function verify(
       step: "triage_ask",
       alert: { entities: a.entities.slice(0, 2), domains: a.suspiciousDomains.slice(0, 2) },
       lastReport,
+      canRate: true,
     },
   };
 }
@@ -317,8 +354,7 @@ function caseReply(c: TriageCase, ctx: BotContext): BotReply {
   const lines = [
     `🆘 *${info.title}*`,
     ...info.steps.map((s, i) => `${i + 1}. ${s}`),
-    "",
-    "📞 *A quién acudir:*",
+    ...(contacts.length ? ["", "📞 *A quién acudir:*"] : []),
     ...contacts.map(
       (x) =>
         `• *${x.name}*${x.phone ? `: ${x.phone}` : ""}${x.url ? ` — ${x.url}` : ""}\n  ${x.description}`,
@@ -421,7 +457,7 @@ export async function handleMessage(
           type: "reporte",
           verdict: state.lastReport.verdict,
           data: {
-            texto: state.lastReport.text,
+            texto: anonymize(state.lastReport.text).slice(0, 1500),
             dominios: state.lastReport.domains,
             senales: state.lastReport.signals,
             estado: "nuevo",
@@ -442,6 +478,10 @@ export async function handleMessage(
       case "util_si":
       case "util_no": {
         const util = buttonId === "util_si";
+        if (!state.canRate) {
+          return done({ replies: [menu("🙏 ¡Gracias! Envíame otro mensaje cuando quieras revisarlo.")], state });
+        }
+        state.canRate = false;
         await ctx.log({ type: "feedback", data: { util } });
         const text = util
           ? "🙏 ¡Gracias! Nos ayuda a mejorar."

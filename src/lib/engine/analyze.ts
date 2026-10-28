@@ -95,6 +95,20 @@ function entityAliases(entry: DomainEntry): string[] {
   return aliases;
 }
 
+// "Consigne" es un pedido ("consigne a esta cuenta"), pero "te consigné" o "ya consigné" cuenta
+// algo que ya pasó. Sin tildes se escriben igual, así que miramos la palabra anterior.
+const PAST_AFTER = /\b(te|le|les|ya|yo|se lo|se la|si)\s+$/;
+const AMBIGUOUS_PAST = new Set(["consigne", "transferi"]);
+
+function isPastReport(text: string, phrase: string): boolean {
+  const p = normalize(phrase).trim();
+  if (!AMBIGUOUS_PAST.has(p)) return false;
+  // Es pasado solo si TODAS las veces que aparece va después de "te", "ya", "le"...
+  const re = new RegExp(`(^|[^a-z0-9])${p}($|[^a-z0-9])`, "g");
+  const hits = [...text.matchAll(re)];
+  return hits.length > 0 && hits.every((m) => PAST_AFTER.test(text.slice(Math.max(0, m.index - 12), m.index + m[1].length)));
+}
+
 export function verdictFor(score: number, isReceipt: boolean): Verdict {
   if (score >= THRESHOLDS.peligroso) return "peligroso";
   if (score >= THRESHOLDS.sospechoso || isReceipt) return "sospechoso";
@@ -117,7 +131,7 @@ export async function analyzeMessage(
   };
   const kw = (category: string) => {
     const found = config.keywords
-      .filter((k) => k.category === category && containsPhrase(fixed, k.phrase))
+      .filter((k) => k.category === category && containsPhrase(fixed, k.phrase) && !isPastReport(fixed, k.phrase))
       .map((k) => normalize(k.phrase));
     // Sin repetir frases contenidas en otra ("codigo que te llego" dentro de "el codigo que te llego").
     return [...new Set(found)].filter((p) => !found.some((o) => o !== p && o.includes(p)));

@@ -19,7 +19,8 @@ export function sanitize(table: ConfigTable, raw: Raw): Result {
       const domain = str(raw.domain, 200)
         .toLowerCase()
         .replace(/^https?:\/\//, "")
-        .replace(/\/.*$/, "")
+        .replace(/[/?#].*$/, "")
+        .replace(/:\d+$/, "")
         .replace(/^www\./, "");
       if (!parse(domain).domain) return { ok: false, error: "Dominio inválido" };
       const list = raw.list === "negra" ? "negra" : "blanca";
@@ -83,15 +84,20 @@ export function sanitize(table: ConfigTable, raw: Raw): Result {
       const qs = Array.isArray(raw.questions) ? (raw.questions as Raw[]) : [];
       const questions: QuizQuestion[] = [];
       for (const [i, q] of qs.entries()) {
-        const options = (Array.isArray(q.options) ? q.options : [])
-          .map((o) => str(o, 200))
-          .filter(Boolean);
+        const rawOptions = (Array.isArray(q.options) ? q.options : []).map((o) => str(o, 200));
+        const options = rawOptions.filter(Boolean);
         const prompt = str(q.prompt, 400);
         if (!prompt || options.length < 2) {
           return { ok: false, error: `La pregunta ${i + 1} necesita texto y al menos 2 opciones` };
         }
-        const correct = num(q.correct_index, -1);
-        if (kind === "prueba" && (correct < 0 || correct >= options.length)) {
+        // El editor cuenta también los renglones vacíos: al quitarlos, la respuesta correcta
+        // se corre de lugar. Se ubica de nuevo según cuántas opciones con texto hay antes.
+        const rawCorrect = num(q.correct_index, -1);
+        const correct =
+          rawCorrect >= 0 && rawCorrect < rawOptions.length && rawOptions[rawCorrect]
+            ? rawOptions.slice(0, rawCorrect).filter(Boolean).length
+            : -1;
+        if (kind === "prueba" && correct < 0) {
           return { ok: false, error: `Marca la respuesta correcta de la pregunta ${i + 1}` };
         }
         questions.push({
